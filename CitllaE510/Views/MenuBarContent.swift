@@ -31,6 +31,10 @@ struct MenuBarContent: View {
         }
         .keyboardShortcut(",")
 
+        Button("Test Buttons…") {
+            WindowManager.shared.showTester()
+        }
+
         Button("Diagnostics…") {
             WindowManager.shared.showDiagnostics()
         }

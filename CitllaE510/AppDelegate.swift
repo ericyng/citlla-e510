@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The XCTest bundle is injected into this app as its test host; skip the
         // menu bar plumbing and the event tap while tests run.
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+        guard !Snapshot.runIfRequested() else { return }
 
         let model = AppModel.shared
 

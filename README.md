@@ -32,8 +32,40 @@ You can bind buttons to:
 - A mouse click (left, right, middle)
 - Open an app, open a URL, or run a shell command
 
-Open **Settings → Buttons** to change a binding. The menu bar icon opens the app;
-**Diagnostics** shows raw HID events from the receiver.
+Open **Settings → Mouse** to see the mouse's nine controls laid out as they are
+on the CITLLA diagram, click a row to change its binding, and **Test Buttons…**
+in the menu bar to see what each physical control actually sends.
+
+## The mouse, as the manufacturer numbers it
+
+The **Mouse** tab shows the two renders from the CITLLA box diagram next to the
+nine numbered callouts, with the diagram's own titles. Each row is also the place
+to change that control's binding.
+
+| # | Control | Diagram says | On the Mac |
+| --- | --- | --- | --- |
+| 1 | Left Button | primary click | native |
+| 2 | Right Button | secondary click | native |
+| 3 | Smart Flying Scroll Wheel | scroll + middle click | scroll, button 3 |
+| 4 | DPI Button | DPI presets | firmware only |
+| 5 | Side Wheel | horizontal scroll | wheel tilt, not a button |
+| 6 | Devices Switch Button | switch paired device | sends `⌘Tab` in the factory profile |
+| 7 | Devices Indicators | 2.4G / BT1 / BT2 / DPI / low power LEDs | not a button |
+| 8 | Forward / Back Buttons | the two thumb buttons | buttons 4 and 5 |
+| 9 | Return to Desktop / Full Screen | bottom-right thumb button | sends `⌃⌘F` in the factory profile |
+
+## Button tester
+
+**Test Buttons…** in the menu bar opens a listen-only window: it shows the same
+demo, highlights each control as you press it, prints how many times it was
+seen, and keeps a raw event log of mouse buttons, wheel and tilt, keyboard
+shortcuts and media keys. Nothing is suppressed while the tester is open, so it
+is safe to leave open while you try things. **Copy Report** puts a plain-text
+summary on the clipboard.
+
+If a control shows up in the tester but is not one of the diagram's numbers, the
+window calls it out under **Not on the diagram** — that is the signal that the
+firmware sends something the remapper cannot bind directly.
 
 ## Requirements
 
@@ -233,12 +265,32 @@ whether a session event tap can be created.
 
 ```
 CitllaE510/
-  Models/       Config, button bindings, action model
-  Services/     Event tap, action execution, HID monitor, permissions, windows
-  Views/        Menu bar, settings, action editor, diagnostics
+  Models/       Config, button bindings, action model, the diagram's callouts
+  Services/     Event tap, actions, HID monitor, permissions, windows, tester
+  Views/        Menu bar, settings, mouse map, tester, action editor, diagnostics
   Utilities/    Key-code names, event marker, --status probe
+  Assets.xcassets/Mouse/  Renders extracted from the manufacturer's diagram
 CitllaE510Tests/  Unit tests for the model layer (run by Scripts/build.sh)
 Scripts/      build.sh: test, build, install
+             extract-assets.swift: diagram -> asset catalog
+Design/       The manufacturer's diagram the renders and callouts come from
+```
+
+The two mouse renders in `Assets.xcassets/Mouse/` are cut out of
+`Design/citlla-diagram.png` by `Scripts/extract-assets.swift`, which keys out the
+studio background, drops the callout leader lines and the floor strip, and writes
+1x and 2x images. Rerun it after replacing the diagram:
+
+```sh
+swift Scripts/extract-assets.swift Design/citlla-diagram.png
+```
+
+The app can snapshot one of its own windows, which is handy when you cannot take
+a screenshot (this machine does not grant screen recording):
+
+```sh
+CitllaE510.app/Contents/MacOS/CitllaE510 --snapshot ~/Desktop/settings.png --tab mouse
+CitllaE510.app/Contents/MacOS/CitllaE510 --snapshot ~/Desktop/tester.png --window tester
 ```
 
 Run `xcodegen generate` after adding files or editing `project.yml`. Tests run

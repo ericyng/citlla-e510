@@ -127,8 +127,45 @@ final class MouseActionTests: XCTestCase {
     }
 }
 
-final class KeyCodeMapTests: XCTestCase {
-    func testKnownNames() {
+final class MouseMapTests: XCTestCase {
+    func testEveryCalloutFromTheDiagramIsPresent() {
+        XCTAssertEqual(MouseMap.controls.map(\.number), Array(1...9))
+        XCTAssertEqual(MouseMap.control(number: 3)?.title, "Smart Flying Scroll Wheel")
+        XCTAssertEqual(MouseMap.control(number: 8)?.title, "Forward / Back Buttons")
+        XCTAssertNil(MouseMap.control(number: 10))
+    }
+
+    func testIndicatorsAreNotRemappable() {
+        XCTAssertFalse(MouseMap.control(number: 7)!.isRemappable)
+        XCTAssertEqual(MouseMap.remappableControls.count, 8)
+    }
+
+    func testButtonsResolveToCallouts() {
+        XCTAssertEqual(MouseMap.control(forButton: 1)?.number, 1)
+        XCTAssertEqual(MouseMap.control(forButton: 2)?.number, 2)
+        XCTAssertEqual(MouseMap.control(forButton: 3)?.number, 3)
+        XCTAssertEqual(MouseMap.control(forButton: 4)?.number, 8)
+        XCTAssertEqual(MouseMap.control(forButton: 5)?.number, 8)
+        XCTAssertNil(MouseMap.control(forButton: 9))
+    }
+
+    func testFactoryShortcutsResolveToCallouts() {
+        let command = NSEvent.ModifierFlags.command.rawValue
+        XCTAssertEqual(MouseMap.control(forKeyCode: 48, modifiers: command)?.number, 6)
+
+        let fullScreen = NSEvent.ModifierFlags([.control, .command]).rawValue
+        XCTAssertEqual(MouseMap.control(forKeyCode: 3, modifiers: fullScreen)?.number, 9)
+
+        // Caps Lock and the numeric pad flag must not defeat the match.
+        XCTAssertEqual(
+            MouseMap.control(forKeyCode: 3, modifiers: fullScreen | NSEvent.ModifierFlags.capsLock.rawValue)?.number,
+            9
+        )
+        XCTAssertNil(MouseMap.control(forKeyCode: 3, modifiers: command))
+    }
+}
+
+final class KeyCodeMapTests: XCTestCase {    func testKnownNames() {
         XCTAssertEqual(KeyCodeMap.name(for: 33), "[")
         XCTAssertEqual(KeyCodeMap.name(for: 36), "Return")
         XCTAssertEqual(KeyCodeMap.name(for: 999), "Key 999")
