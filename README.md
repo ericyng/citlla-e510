@@ -169,6 +169,30 @@ tccutil reset Accessibility com.ericng.citllae510
 **Diagnostics says it cannot open the mouse.**
 Grant Input Monitoring and reopen the Diagnostics window.
 
+**A permission grant seems stale after rebuilding.**
+Reset it and grant it again:
+
+```sh
+tccutil reset Accessibility com.ericng.citllae510
+```
+
+**Xcode prints `connection to service named com.apple.linkd.autoShortcut`.**
+Harmless. `linkd` is an OS service that backs Shortcuts and App Intents; macOS
+27 beta logs the failed lookup when a SwiftUI app is launched from Xcode. This
+app registers no App Intents, the message never reaches the unified log when the
+app is launched from Finder, and remapping is unaffected. Ignore it.
+
+**Check the real permission/tap state.**
+The app can report what the process is actually allowed to do and then exit:
+
+```sh
+CitllaE510.app/Contents/MacOS/CitllaE510 --status
+```
+
+It prints (and writes to `~/Library/Application Support/CitllaE510/status.txt`)
+whether Accessibility is trusted, whether Input Monitoring is granted, and
+whether a session event tap can be created.
+
 ## Development
 
 ```

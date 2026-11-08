@@ -8,6 +8,8 @@ struct CitllaE510App: App {
     @StateObject private var loginItem = LoginItemManager.shared
 
     init() {
+        StatusProbe.runIfRequested()
+
         let store = ConfigStore()
         let tap = EventTapService(config: store)
         _config = StateObject(wrappedValue: store)

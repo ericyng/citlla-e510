@@ -11,6 +11,7 @@
 		194049572FB71D47724B5058 /* ShortcutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98BED303DDB87F08A81BAC5B /* ShortcutRecorder.swift */; };
 		30EEE01145EE4867BCFC95F7 /* ConfigStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA09A42C2029743833F1A7E6 /* ConfigStore.swift */; };
 		34D1FF44C52A8681B04EA92C /* ButtonBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3CA9B7EBE42806FFCBCBDA6 /* ButtonBinding.swift */; };
+		3E9D44001352D3039F0EAE20 /* StatusProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = A08B127B7FC4E412E895F7F0 /* StatusProbe.swift */; };
 		51CD7D0179E59DAE5A823702 /* DiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F38D77933A30FA87332C1C2F /* DiagnosticsView.swift */; };
 		538B30846B678CB52472B818 /* EventTapService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9C2BC846F00910BC0F2EF /* EventTapService.swift */; };
 		6427BD8250E409C4F78786C7 /* LoginItemManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 762303EC4CBD6433FA135A6C /* LoginItemManager.swift */; };
@@ -43,6 +44,7 @@
 		98BED303DDB87F08A81BAC5B /* ShortcutRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutRecorder.swift; sourceTree = "<group>"; };
 		9AF2B1796042A24B29F49927 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		9F9C5F11CC003595805F7B32 /* CitllaE510App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CitllaE510App.swift; sourceTree = "<group>"; };
+		A08B127B7FC4E412E895F7F0 /* StatusProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusProbe.swift; sourceTree = "<group>"; };
 		A435E2C411FA9D75EF171EB5 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		D3CA9B7EBE42806FFCBCBDA6 /* ButtonBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonBinding.swift; sourceTree = "<group>"; };
 		D6A847E741DD8D726B5DC2BA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -102,6 +104,7 @@
 			isa = PBXGroup;
 			children = (
 				F04B68752FB22CCD7845180C /* KeyCodeMap.swift */,
+				A08B127B7FC4E412E895F7F0 /* StatusProbe.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -216,6 +219,7 @@
 				95E515360B345145B7B94E44 /* PermissionsView.swift in Sources */,
 				08B87AAB9EC060B8D69407C0 /* SettingsView.swift in Sources */,
 				194049572FB71D47724B5058 /* ShortcutRecorder.swift in Sources */,
+				3E9D44001352D3039F0EAE20 /* StatusProbe.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

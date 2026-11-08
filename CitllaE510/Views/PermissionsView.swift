@@ -69,6 +69,10 @@ struct PermissionsView: View {
                             Text("After granting Accessibility, restart the event tap. macOS may also require you to relaunch the app once after a rebuild.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                            Text("If Accessibility already says Granted but the tap still will not start, the grant went stale after a rebuild. Remove Citlla E510 from the Accessibility list and add it again, or run: tccutil reset Accessibility com.ericng.citllae510")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                                .textSelection(.enabled)
                         }
                         .padding(4)
                     }

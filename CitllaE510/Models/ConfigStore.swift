@@ -10,6 +10,12 @@ final class ConfigStore: ObservableObject {
     private let fileURL: URL
     private let logger = Logger(subsystem: "com.ericng.citillae510", category: "config")
 
+    /// `~/Library/Application Support/CitllaE510`
+    nonisolated static var supportDirectory: URL? {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("CitllaE510", isDirectory: true)
+    }
+
     init(fileManager: FileManager = .default) {
         let support = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? fileManager.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support")
