@@ -86,7 +86,10 @@ final class ButtonTester: ObservableObject {
 
         guard let tap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
-            place: .tailAppendEventTap,
+            // Head insert so the tester still sees a button that the remapper
+            // (created earlier) swallows a moment later. A listen-only tap
+            // cannot suppress anything, so this is safe.
+            place: .headInsertEventTap,
             options: .listenOnly,
             eventsOfInterest: mask,
             callback: testerCallback,
