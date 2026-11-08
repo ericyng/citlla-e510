@@ -1,0 +1,39 @@
+name: CitllaE510
+options:
+  bundleIdPrefix: com.ericng
+  deploymentTarget:
+    macOS: "15.0"
+  xcodeVersion: "27.1"
+  createIntermediateGroups: true
+  developmentLanguage: en
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+targets:
+  CitllaE510:
+    type: application
+    platform: macOS
+    sources:
+      - path: CitllaE510
+    entitlements:
+      path: CitllaE510/CitllaE510.entitlements
+      properties: {}
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ericng.citllae510
+        PRODUCT_NAME: CitllaE510
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_CFBundleDisplayName: Citlla E510
+        INFOPLIST_KEY_LSUIElement: "YES"
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright © 2026 Eric Ng. All rights reserved."
+        INFOPLIST_KEY_NSInputMonitoringUsageDescription: "Citlla E510 reads mouse input from your CITLLA mouse so it can remap its extra buttons."
+        GENERATE_INFOPLIST_FILE: YES
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        ENABLE_HARDENED_RUNTIME: NO
+        CODE_SIGN_STYLE: Automatic
+        COMBINE_HIDPI_IMAGES: YES

@@ -1,0 +1,424 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		08B87AAB9EC060B8D69407C0 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF2B1796042A24B29F49927 /* SettingsView.swift */; };
+		194049572FB71D47724B5058 /* ShortcutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98BED303DDB87F08A81BAC5B /* ShortcutRecorder.swift */; };
+		30EEE01145EE4867BCFC95F7 /* ConfigStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA09A42C2029743833F1A7E6 /* ConfigStore.swift */; };
+		34D1FF44C52A8681B04EA92C /* ButtonBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3CA9B7EBE42806FFCBCBDA6 /* ButtonBinding.swift */; };
+		51CD7D0179E59DAE5A823702 /* DiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F38D77933A30FA87332C1C2F /* DiagnosticsView.swift */; };
+		538B30846B678CB52472B818 /* EventTapService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9C2BC846F00910BC0F2EF /* EventTapService.swift */; };
+		6427BD8250E409C4F78786C7 /* LoginItemManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 762303EC4CBD6433FA135A6C /* LoginItemManager.swift */; };
+		7209E147565B0D9802BE0F35 /* KeyCodeMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04B68752FB22CCD7845180C /* KeyCodeMap.swift */; };
+		87BE49B5408744E53F1FD856 /* HIDMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 201592ADEAE3A5917F727B66 /* HIDMonitor.swift */; };
+		923E842895AA5E0A468FAD2C /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00ABB2AF04E36A50943424E1 /* AppConfig.swift */; };
+		95E515360B345145B7B94E44 /* PermissionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6982D083ACE01075FDB3ED4B /* PermissionsView.swift */; };
+		9AC2DCE0DD625D0DCBFA42D3 /* CitllaE510App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9C5F11CC003595805F7B32 /* CitllaE510App.swift */; };
+		9E08A205F7E8E9CBDAB36AE3 /* PermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634C8CBEBB79BA7778AF716 /* PermissionManager.swift */; };
+		AD5AAC143A0DD07648686B09 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A435E2C411FA9D75EF171EB5 /* AboutView.swift */; };
+		AEBD57E3D4936A24C3A247A1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D6A847E741DD8D726B5DC2BA /* Assets.xcassets */; };
+		B3EDDDEC8BEBFA3AE08523B7 /* MouseAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17D90DB6A59BAFC9BE0DB5E2 /* MouseAction.swift */; };
+		BDC37F94F2A640AB0443AF06 /* ActionExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE6F64D5A5906F3E5AF44204 /* ActionExecutor.swift */; };
+		CA663AFF15A8BEE829002823 /* ActionEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EC3F329932290601CBDF00F /* ActionEditorSheet.swift */; };
+		D6FF0B8A56BF901E35B421BF /* MenuBarContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EBEC1DD683557408C5403C5 /* MenuBarContent.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		00ABB2AF04E36A50943424E1 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
+		0634C8CBEBB79BA7778AF716 /* PermissionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionManager.swift; sourceTree = "<group>"; };
+		17D90DB6A59BAFC9BE0DB5E2 /* MouseAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseAction.swift; sourceTree = "<group>"; };
+		201592ADEAE3A5917F727B66 /* HIDMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDMonitor.swift; sourceTree = "<group>"; };
+		2250ECF637ADA329F1168D83 /* CitllaE510.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CitllaE510.entitlements; sourceTree = "<group>"; };
+		24D9C2BC846F00910BC0F2EF /* EventTapService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTapService.swift; sourceTree = "<group>"; };
+		3EC3F329932290601CBDF00F /* ActionEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionEditorSheet.swift; sourceTree = "<group>"; };
+		6982D083ACE01075FDB3ED4B /* PermissionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsView.swift; sourceTree = "<group>"; };
+		759AA247C79D868EB162048D /* CitllaE510.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CitllaE510.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		762303EC4CBD6433FA135A6C /* LoginItemManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemManager.swift; sourceTree = "<group>"; };
+		7EBEC1DD683557408C5403C5 /* MenuBarContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContent.swift; sourceTree = "<group>"; };
+		98BED303DDB87F08A81BAC5B /* ShortcutRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutRecorder.swift; sourceTree = "<group>"; };
+		9AF2B1796042A24B29F49927 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		9F9C5F11CC003595805F7B32 /* CitllaE510App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CitllaE510App.swift; sourceTree = "<group>"; };
+		A435E2C411FA9D75EF171EB5 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
+		D3CA9B7EBE42806FFCBCBDA6 /* ButtonBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonBinding.swift; sourceTree = "<group>"; };
+		D6A847E741DD8D726B5DC2BA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F04B68752FB22CCD7845180C /* KeyCodeMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCodeMap.swift; sourceTree = "<group>"; };
+		F38D77933A30FA87332C1C2F /* DiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsView.swift; sourceTree = "<group>"; };
+		FA09A42C2029743833F1A7E6 /* ConfigStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigStore.swift; sourceTree = "<group>"; };
+		FE6F64D5A5906F3E5AF44204 /* ActionExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionExecutor.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0CB16AF029941298DB3678FA = {
+			isa = PBXGroup;
+			children = (
+				5D2DD37B8EEFAE9D4676D2D2 /* CitllaE510 */,
+				D177F33B65DBFAE3246D9AFD /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		14EFE2CDE843BCC39F6AA911 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				00ABB2AF04E36A50943424E1 /* AppConfig.swift */,
+				D3CA9B7EBE42806FFCBCBDA6 /* ButtonBinding.swift */,
+				FA09A42C2029743833F1A7E6 /* ConfigStore.swift */,
+				17D90DB6A59BAFC9BE0DB5E2 /* MouseAction.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		5D2DD37B8EEFAE9D4676D2D2 /* CitllaE510 */ = {
+			isa = PBXGroup;
+			children = (
+				D6A847E741DD8D726B5DC2BA /* Assets.xcassets */,
+				2250ECF637ADA329F1168D83 /* CitllaE510.entitlements */,
+				9F9C5F11CC003595805F7B32 /* CitllaE510App.swift */,
+				14EFE2CDE843BCC39F6AA911 /* Models */,
+				B0A287BDD936D82BCBE0A709 /* Services */,
+				CC510C9D615E2043AF6C855B /* Utilities */,
+				F7DE9C9DB5360F2392FFCAE3 /* Views */,
+			);
+			path = CitllaE510;
+			sourceTree = "<group>";
+		};
+		B0A287BDD936D82BCBE0A709 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				FE6F64D5A5906F3E5AF44204 /* ActionExecutor.swift */,
+				24D9C2BC846F00910BC0F2EF /* EventTapService.swift */,
+				201592ADEAE3A5917F727B66 /* HIDMonitor.swift */,
+				762303EC4CBD6433FA135A6C /* LoginItemManager.swift */,
+				0634C8CBEBB79BA7778AF716 /* PermissionManager.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		CC510C9D615E2043AF6C855B /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				F04B68752FB22CCD7845180C /* KeyCodeMap.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		D177F33B65DBFAE3246D9AFD /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				759AA247C79D868EB162048D /* CitllaE510.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		F7DE9C9DB5360F2392FFCAE3 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A435E2C411FA9D75EF171EB5 /* AboutView.swift */,
+				3EC3F329932290601CBDF00F /* ActionEditorSheet.swift */,
+				F38D77933A30FA87332C1C2F /* DiagnosticsView.swift */,
+				7EBEC1DD683557408C5403C5 /* MenuBarContent.swift */,
+				6982D083ACE01075FDB3ED4B /* PermissionsView.swift */,
+				9AF2B1796042A24B29F49927 /* SettingsView.swift */,
+				98BED303DDB87F08A81BAC5B /* ShortcutRecorder.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		5E364FFD540F3A15BCE7D08E /* CitllaE510 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 51B03A4528D6C5A7CED73A4E /* Build configuration list for PBXNativeTarget "CitllaE510" */;
+			buildPhases = (
+				1D592A0849C35D68ED3641A0 /* Sources */,
+				35B64A3B57019F834CD5F333 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CitllaE510;
+			packageProductDependencies = (
+			);
+			productName = CitllaE510;
+			productReference = 759AA247C79D868EB162048D /* CitllaE510.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		62A72C63BD00DD5E87F0BC2F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 2710;
+				TargetAttributes = {
+					5E364FFD540F3A15BCE7D08E = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 0A43C1F4F153FB69B894FF03 /* Build configuration list for PBXProject "CitllaE510" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 0CB16AF029941298DB3678FA;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D177F33B65DBFAE3246D9AFD /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5E364FFD540F3A15BCE7D08E /* CitllaE510 */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		35B64A3B57019F834CD5F333 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AEBD57E3D4936A24C3A247A1 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1D592A0849C35D68ED3641A0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AD5AAC143A0DD07648686B09 /* AboutView.swift in Sources */,
+				CA663AFF15A8BEE829002823 /* ActionEditorSheet.swift in Sources */,
+				BDC37F94F2A640AB0443AF06 /* ActionExecutor.swift in Sources */,
+				923E842895AA5E0A468FAD2C /* AppConfig.swift in Sources */,
+				34D1FF44C52A8681B04EA92C /* ButtonBinding.swift in Sources */,
+				9AC2DCE0DD625D0DCBFA42D3 /* CitllaE510App.swift in Sources */,
+				30EEE01145EE4867BCFC95F7 /* ConfigStore.swift in Sources */,
+				51CD7D0179E59DAE5A823702 /* DiagnosticsView.swift in Sources */,
+				538B30846B678CB52472B818 /* EventTapService.swift in Sources */,
+				87BE49B5408744E53F1FD856 /* HIDMonitor.swift in Sources */,
+				7209E147565B0D9802BE0F35 /* KeyCodeMap.swift in Sources */,
+				6427BD8250E409C4F78786C7 /* LoginItemManager.swift in Sources */,
+				D6FF0B8A56BF901E35B421BF /* MenuBarContent.swift in Sources */,
+				B3EDDDEC8BEBFA3AE08523B7 /* MouseAction.swift in Sources */,
+				9E08A205F7E8E9CBDAB36AE3 /* PermissionManager.swift in Sources */,
+				95E515360B345145B7B94E44 /* PermissionsView.swift in Sources */,
+				08B87AAB9EC060B8D69407C0 /* SettingsView.swift in Sources */,
+				194049572FB71D47724B5058 /* ShortcutRecorder.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		52A0534EF55EA5750D10FA43 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = CitllaE510/CitllaE510.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Citlla E510";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Eric Ng. All rights reserved.";
+				INFOPLIST_KEY_NSInputMonitoringUsageDescription = "Citlla E510 reads mouse input from your CITLLA mouse so it can remap its extra buttons.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ericng.citllae510;
+				PRODUCT_NAME = CitllaE510;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		85FD1F378488B41E3A2C778D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = CitllaE510/CitllaE510.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Citlla E510";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Eric Ng. All rights reserved.";
+				INFOPLIST_KEY_NSInputMonitoringUsageDescription = "Citlla E510 reads mouse input from your CITLLA mouse so it can remap its extra buttons.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ericng.citllae510;
+				PRODUCT_NAME = CitllaE510;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		860A4E6DB11C3662EA2FC1D8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		D38AEB79DCDABF49A621EE03 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0A43C1F4F153FB69B894FF03 /* Build configuration list for PBXProject "CitllaE510" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D38AEB79DCDABF49A621EE03 /* Debug */,
+				860A4E6DB11C3662EA2FC1D8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		51B03A4528D6C5A7CED73A4E /* Build configuration list for PBXNativeTarget "CitllaE510" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				52A0534EF55EA5750D10FA43 /* Debug */,
+				85FD1F378488B41E3A2C778D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 62A72C63BD00DD5E87F0BC2F /* Project object */;
+}
