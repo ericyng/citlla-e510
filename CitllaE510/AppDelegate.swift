@@ -16,6 +16,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             try? await Task.sleep(for: .milliseconds(400))
             model.eventTap.startIfNeeded()
 
+            // A freshly installed (ad hoc) build can be reported as untrusted
+            // for a moment before macOS re-validates the existing grant, so
+            // keep trying quietly for a minute instead of giving up.
+            for _ in 0..<30 where !model.eventTap.isRunning {
+                try? await Task.sleep(for: .seconds(2))
+                model.eventTap.startIfNeeded()
+            }
+
             // Nothing is visible until the menu bar icon is clicked, so show the
             // window when there is something to act on.
             if !model.config.hadStoredConfig || !PermissionManager.hasAccessibility {

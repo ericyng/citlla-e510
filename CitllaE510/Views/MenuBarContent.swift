@@ -19,7 +19,11 @@ struct MenuBarContent: View {
         )
 
         if let error = eventTap.lastError, !eventTap.isRunning {
-            Text(error)
+            HStack {
+                Text(error)
+                Spacer()
+                Button("Retry") { eventTap.startIfNeeded() }
+            }
         } else {
             Text(eventTap.isRunning ? "Event tap active" : "Event tap inactive")
         }
@@ -55,5 +59,10 @@ struct MenuBarContent: View {
             NSApplication.shared.terminate(nil)
         }
         .keyboardShortcut("q")
+        .onAppear {
+            // Accessibility can be granted while the app is already running
+            // (or just after a rebuild), so re-check every time the menu opens.
+            eventTap.startIfNeeded()
+        }
     }
 }
