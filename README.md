@@ -70,6 +70,35 @@ xcodebuild \
   CODE_SIGNING_ALLOWED=NO build
 ```
 
+### Build script
+
+`Scripts/build.sh` runs the unit tests, builds a Release app, checks the bundle,
+installs it to `/Applications`, and launches it:
+
+```sh
+Scripts/build.sh              # test, build, install, launch
+Scripts/build.sh --debug      # same, but a Debug build
+Scripts/build.sh --no-tests   # skip the tests
+Scripts/build.sh --no-install # build and verify only
+Scripts/build.sh --no-launch  # install without launching
+Scripts/build.sh --dest DIR   # install somewhere else
+Scripts/build.sh --sign ID    # sign with a keychain identity (see below)
+```
+
+The script stops if a copy is already running, so quit it (or stop it in Xcode)
+before installing. It also warns when the build is ad hoc signed, because that
+invalidates an existing Accessibility grant.
+
+Signing with a real identity keeps the code signature stable across rebuilds,
+which means macOS keeps the Accessibility grant:
+
+```sh
+Scripts/build.sh --sign "Apple Development: you@example.com (TEAMID)"
+```
+
+With no identity available, the alternative is to install to `/Applications` and
+re-grant Accessibility from System Settings after each rebuild.
+
 The app is a menu bar utility (`LSUIElement`), so it has no Dock icon and does
 not open a window by itself. Look for the mouse icon in the menu bar.
 
@@ -183,13 +212,6 @@ tccutil reset Accessibility com.ericng.citllae510
 **Diagnostics says it cannot open the mouse.**
 Grant Input Monitoring and reopen the Diagnostics window.
 
-**A permission grant seems stale after rebuilding.**
-Reset it and grant it again:
-
-```sh
-tccutil reset Accessibility com.ericng.citllae510
-```
-
 **Xcode prints `connection to service named com.apple.linkd.autoShortcut`.**
 Harmless. `linkd` is an OS service that backs Shortcuts and App Intents; macOS
 27 beta logs the failed lookup when a SwiftUI app is launched from Xcode. This
@@ -212,10 +234,20 @@ whether a session event tap can be created.
 ```
 CitllaE510/
   Models/       Config, button bindings, action model
-  Services/     Event tap, action execution, HID monitor, permissions
+  Services/     Event tap, action execution, HID monitor, permissions, windows
   Views/        Menu bar, settings, action editor, diagnostics
-  Utilities/    Key-code names and event marker
+  Utilities/    Key-code names, event marker, --status probe
+CitllaE510Tests/  Unit tests for the model layer (run by Scripts/build.sh)
+Scripts/      build.sh: test, build, install
 ```
 
-Run `xcodegen generate` after editing `project.yml`. The icon source is in
-`Icon/`; run `Icon/build.sh` to regenerate the asset catalog.
+Run `xcodegen generate` after adding files or editing `project.yml`. Tests run
+with `Scripts/build.sh` or:
+
+```sh
+xcodebuild -project CitllaE510.xcodeproj -scheme CitllaE510 \
+  -configuration Debug -destination 'platform=macOS' test
+```
+
+The icon source is in `Icon/`; run `Icon/build.sh` to regenerate the asset
+catalog.

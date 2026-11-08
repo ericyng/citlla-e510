@@ -37,3 +37,38 @@ targets:
         ENABLE_HARDENED_RUNTIME: NO
         CODE_SIGN_STYLE: Automatic
         COMBINE_HIDPI_IMAGES: YES
+
+  CitllaE510Tests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: CitllaE510Tests
+    dependencies:
+      - target: CitllaE510
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ericng.citllae510.tests
+        PRODUCT_NAME: CitllaE510Tests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/CitllaE510.app/Contents/MacOS/CitllaE510"
+
+schemes:
+  CitllaE510:
+    build:
+      targets:
+        CitllaE510: all
+        CitllaE510Tests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - CitllaE510Tests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

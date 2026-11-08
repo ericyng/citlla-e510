@@ -19,10 +19,10 @@ final class ConfigStore: ObservableObject {
             .appendingPathComponent("CitllaE510", isDirectory: true)
     }
 
-    init(fileManager: FileManager = .default) {
+    init(fileManager: FileManager = .default, directory: URL? = nil) {
         let support = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? fileManager.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support")
-        let directory = support.appendingPathComponent("CitllaE510", isDirectory: true)
+        let directory = directory ?? support.appendingPathComponent("CitllaE510", isDirectory: true)
         try? fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         fileURL = directory.appendingPathComponent("config.json")
 

@@ -4,6 +4,10 @@ import SwiftUI
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // The XCTest bundle is injected into this app as its test host; skip the
+        // menu bar plumbing and the event tap while tests run.
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+
         let model = AppModel.shared
 
         Task { @MainActor in
