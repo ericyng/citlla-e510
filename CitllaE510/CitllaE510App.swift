@@ -27,7 +27,8 @@ struct CitllaE510App: App {
                 .environmentObject(eventTap)
                 .environmentObject(loginItem)
         } label: {
-            Label("Citlla E510", systemImage: "computermouse")
+            Image(systemName: "computermouse")
+                .accessibilityLabel("Citlla E510")
         }
 
         Settings {

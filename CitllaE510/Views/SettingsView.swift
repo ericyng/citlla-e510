@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct SettingsView: View {
@@ -18,6 +19,9 @@ struct SettingsView: View {
         .environmentObject(eventTap)
         .environmentObject(loginItem)
         .frame(width: 760, height: 560)
+        .onAppear {
+            NSApplication.shared.activate(ignoringOtherApps: true)
+        }
     }
 }
 

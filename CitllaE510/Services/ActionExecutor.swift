@@ -49,7 +49,16 @@ enum ActionExecutor {
         case .showDesktop:
             postKey(103, flags: [])                       // F11
         case .launchpad:
-            openApp(at: "/System/Applications/Launchpad.app")
+            // macOS 26+ replaced Launchpad.app with Apps.app; support both.
+            let launchpad = "/System/Applications/Launchpad.app"
+            let apps = "/System/Applications/Apps.app"
+            if FileManager.default.fileExists(atPath: launchpad) {
+                openApp(at: launchpad)
+            } else if FileManager.default.fileExists(atPath: apps) {
+                openApp(at: apps)
+            } else {
+                postKey(118, flags: [])                   // F4
+            }
         case .spotlight:
             postKey(49, flags: .maskCommand)              // ⌘Space
         case .screenshot:

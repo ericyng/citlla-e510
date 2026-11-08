@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct DiagnosticsView: View {
@@ -37,6 +38,7 @@ struct DiagnosticsView: View {
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
+                    Button("Retry") { monitor.start() }
                     Button("Grant Access") {
                         _ = PermissionManager.requestInputMonitoring()
                         PermissionManager.openInputMonitoringSettings()
@@ -141,7 +143,10 @@ struct DiagnosticsView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
         }
-        .onAppear { monitor.start() }
+        .onAppear {
+            NSApplication.shared.activate(ignoringOtherApps: true)
+            monitor.start()
+        }
         .onDisappear { monitor.stop() }
     }
 
