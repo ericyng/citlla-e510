@@ -70,8 +70,22 @@ xcodebuild \
   CODE_SIGNING_ALLOWED=NO build
 ```
 
-The app is a menu bar utility (`LSUIElement`), so it has no Dock icon. Look for
-the mouse icon in the menu bar.
+The app is a menu bar utility (`LSUIElement`), so it has no Dock icon and does
+not open a window by itself. Look for the mouse icon in the menu bar.
+
+Because that is easy to miss, the app opens its **Settings** window on first run,
+and again on any launch where Accessibility has not been granted yet. After that
+it stays out of the way: closing the window leaves the app running in the menu
+bar, and **Quit Citlla E510** in the menu bar is the way to stop it.
+
+### Running from Xcode
+
+Each `Run` launches a new copy out of DerivedData, and an ad-hoc signature
+changes with every rebuild, so an existing Accessibility grant silently stops
+applying. If the menu says *Accessibility permission is required* even though
+the toggle is on, remove Citlla E510 from the Accessibility list, add it back,
+then press **Restart Event Tap**. Granting the copy built into `/Applications`
+instead of the DerivedData build avoids this.
 
 ## Permissions
 

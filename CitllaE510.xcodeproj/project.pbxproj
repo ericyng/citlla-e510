@@ -24,9 +24,11 @@
 		AD5AAC143A0DD07648686B09 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A435E2C411FA9D75EF171EB5 /* AboutView.swift */; };
 		AEBD57E3D4936A24C3A247A1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D6A847E741DD8D726B5DC2BA /* Assets.xcassets */; };
 		B3EDDDEC8BEBFA3AE08523B7 /* MouseAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17D90DB6A59BAFC9BE0DB5E2 /* MouseAction.swift */; };
+		BD4FA991A7917918870BD28C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49637FBEBBA9734BAD28AAD9 /* AppDelegate.swift */; };
 		BDC37F94F2A640AB0443AF06 /* ActionExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE6F64D5A5906F3E5AF44204 /* ActionExecutor.swift */; };
 		CA663AFF15A8BEE829002823 /* ActionEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EC3F329932290601CBDF00F /* ActionEditorSheet.swift */; };
 		D6FF0B8A56BF901E35B421BF /* MenuBarContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EBEC1DD683557408C5403C5 /* MenuBarContent.swift */; };
+		F33574C182465AABA6E47549 /* WindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C211C951E4E989BD57C8A9DB /* WindowManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,6 +39,7 @@
 		2250ECF637ADA329F1168D83 /* CitllaE510.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CitllaE510.entitlements; sourceTree = "<group>"; };
 		24D9C2BC846F00910BC0F2EF /* EventTapService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTapService.swift; sourceTree = "<group>"; };
 		3EC3F329932290601CBDF00F /* ActionEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionEditorSheet.swift; sourceTree = "<group>"; };
+		49637FBEBBA9734BAD28AAD9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		6982D083ACE01075FDB3ED4B /* PermissionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsView.swift; sourceTree = "<group>"; };
 		759AA247C79D868EB162048D /* CitllaE510.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CitllaE510.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		762303EC4CBD6433FA135A6C /* LoginItemManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemManager.swift; sourceTree = "<group>"; };
@@ -46,6 +49,7 @@
 		9F9C5F11CC003595805F7B32 /* CitllaE510App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CitllaE510App.swift; sourceTree = "<group>"; };
 		A08B127B7FC4E412E895F7F0 /* StatusProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusProbe.swift; sourceTree = "<group>"; };
 		A435E2C411FA9D75EF171EB5 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
+		C211C951E4E989BD57C8A9DB /* WindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowManager.swift; sourceTree = "<group>"; };
 		D3CA9B7EBE42806FFCBCBDA6 /* ButtonBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonBinding.swift; sourceTree = "<group>"; };
 		D6A847E741DD8D726B5DC2BA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F04B68752FB22CCD7845180C /* KeyCodeMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCodeMap.swift; sourceTree = "<group>"; };
@@ -77,6 +81,7 @@
 		5D2DD37B8EEFAE9D4676D2D2 /* CitllaE510 */ = {
 			isa = PBXGroup;
 			children = (
+				49637FBEBBA9734BAD28AAD9 /* AppDelegate.swift */,
 				D6A847E741DD8D726B5DC2BA /* Assets.xcassets */,
 				2250ECF637ADA329F1168D83 /* CitllaE510.entitlements */,
 				9F9C5F11CC003595805F7B32 /* CitllaE510App.swift */,
@@ -96,6 +101,7 @@
 				201592ADEAE3A5917F727B66 /* HIDMonitor.swift */,
 				762303EC4CBD6433FA135A6C /* LoginItemManager.swift */,
 				0634C8CBEBB79BA7778AF716 /* PermissionManager.swift */,
+				C211C951E4E989BD57C8A9DB /* WindowManager.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -205,6 +211,7 @@
 				CA663AFF15A8BEE829002823 /* ActionEditorSheet.swift in Sources */,
 				BDC37F94F2A640AB0443AF06 /* ActionExecutor.swift in Sources */,
 				923E842895AA5E0A468FAD2C /* AppConfig.swift in Sources */,
+				BD4FA991A7917918870BD28C /* AppDelegate.swift in Sources */,
 				34D1FF44C52A8681B04EA92C /* ButtonBinding.swift in Sources */,
 				9AC2DCE0DD625D0DCBFA42D3 /* CitllaE510App.swift in Sources */,
 				30EEE01145EE4867BCFC95F7 /* ConfigStore.swift in Sources */,
@@ -220,6 +227,7 @@
 				08B87AAB9EC060B8D69407C0 /* SettingsView.swift in Sources */,
 				194049572FB71D47724B5058 /* ShortcutRecorder.swift in Sources */,
 				3E9D44001352D3039F0EAE20 /* StatusProbe.swift in Sources */,
+				F33574C182465AABA6E47549 /* WindowManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

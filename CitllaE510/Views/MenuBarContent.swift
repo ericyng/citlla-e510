@@ -5,7 +5,6 @@ struct MenuBarContent: View {
     @EnvironmentObject private var config: ConfigStore
     @EnvironmentObject private var eventTap: EventTapService
     @EnvironmentObject private var loginItem: LoginItemManager
-    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         Toggle(
@@ -27,12 +26,13 @@ struct MenuBarContent: View {
 
         Divider()
 
-        SettingsLink {
-            Label("Settings…", systemImage: "gearshape")
+        Button("Settings…") {
+            WindowManager.shared.showSettings()
         }
+        .keyboardShortcut(",")
 
         Button("Diagnostics…") {
-            openWindow(id: "diagnostics")
+            WindowManager.shared.showDiagnostics()
         }
 
         Divider()

@@ -1,26 +1,41 @@
 import AppKit
 import SwiftUI
 
+enum SettingsTab: Hashable {
+    case buttons
+    case permissions
+    case about
+}
+
 struct SettingsView: View {
     @EnvironmentObject private var config: ConfigStore
     @EnvironmentObject private var eventTap: EventTapService
     @EnvironmentObject private var loginItem: LoginItemManager
 
+    @State private var selection: SettingsTab
+
+    init(initialTab: SettingsTab = .buttons) {
+        _selection = State(initialValue: initialTab)
+    }
+
     var body: some View {
-        TabView {
+        TabView(selection: $selection) {
             ButtonsSettingsView()
                 .tabItem { Label("Buttons", systemImage: "computermouse") }
+                .tag(SettingsTab.buttons)
             PermissionsView()
                 .tabItem { Label("Permissions", systemImage: "lock.shield") }
+                .tag(SettingsTab.permissions)
             AboutView()
                 .tabItem { Label("About", systemImage: "info.circle") }
+                .tag(SettingsTab.about)
         }
         .environmentObject(config)
         .environmentObject(eventTap)
         .environmentObject(loginItem)
         .frame(width: 760, height: 560)
         .onAppear {
-            NSApplication.shared.activate(ignoringOtherApps: true)
+            NSApplication.shared.activate()
         }
     }
 }

@@ -10,6 +10,9 @@ final class ConfigStore: ObservableObject {
     private let fileURL: URL
     private let logger = Logger(subsystem: "com.ericng.citillae510", category: "config")
 
+    /// True when `config.json` already existed, so this is not a first run.
+    let hadStoredConfig: Bool
+
     /// `~/Library/Application Support/CitllaE510`
     nonisolated static var supportDirectory: URL? {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
@@ -25,8 +28,10 @@ final class ConfigStore: ObservableObject {
 
         if let data = try? Data(contentsOf: fileURL),
            let decoded = try? JSONDecoder().decode(AppConfig.self, from: data) {
+            hadStoredConfig = true
             config = decoded
         } else {
+            hadStoredConfig = false
             config = AppConfig()
         }
     }
