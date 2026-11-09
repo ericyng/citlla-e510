@@ -10,6 +10,22 @@ button event with that action.
 
 ![Menu bar app](Icon/icon-256.png)
 
+## Screenshots
+
+**Settings → Mouse** — the nine controls, numbered where they sit on the mouse,
+with a row for each one's binding:
+
+![Settings, Mouse tab](docs/screenshots/mouse.png)
+
+**Button Tester** — what each physical control actually sends, and whether it
+came from the mouse or the keyboard:
+
+![Button Tester](docs/screenshots/tester.png)
+
+The rest of the window: [Buttons](docs/screenshots/buttons.png) ·
+[Permissions](docs/screenshots/permissions.png) ·
+[About](docs/screenshots/about.png)
+
 ## Defaults
 
 The CITLLA PRO MAX E510 does not report its extra buttons as ordinary mouse
@@ -323,6 +339,7 @@ CitllaE510Tests/  Unit tests for the model layer (run by Scripts/build.sh)
 Scripts/      build.sh: test, build, install
              extract-assets.swift: diagram -> asset catalog
 Design/       The manufacturer's diagram the renders and callouts come from
+docs/         Screenshots used in this README
 ```
 
 The two mouse renders in `Assets.xcassets/Mouse/` are cut out of
@@ -341,6 +358,9 @@ a screenshot (this machine does not grant screen recording):
 CitllaE510.app/Contents/MacOS/CitllaE510 --snapshot ~/Desktop/settings.png --tab mouse
 CitllaE510.app/Contents/MacOS/CitllaE510 --snapshot ~/Desktop/tester.png --window tester
 ```
+
+Add `--scale 2` for a retina-crisp PNG; that is how the screenshots above were
+made.
 
 Run `xcodegen generate` after adding files or editing `project.yml`. Tests run
 with `Scripts/build.sh` or:

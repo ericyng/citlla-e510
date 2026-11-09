@@ -198,3 +198,5 @@ opaque pixels on their edges.
 - today: callout numbers drawn on the mouse renders (`badgePoint` from the
   diagram's arrow tips), top crop widened so the artwork is no longer clipped,
   Spotlight and Lock Screen marked "(not available)" in the action picker
+- today: `--snapshot --scale N` renders the windows at N device pixels per point;
+  the 2x renders live in `docs/screenshots/` and are shown in the README
