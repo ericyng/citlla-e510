@@ -26,7 +26,8 @@ struct MouseKeySample: Sendable {
 /// The CITLLA E510's receiver presents two HID interfaces: a mouse and a
 /// keyboard. The extra buttons are on the keyboard one, so macOS turns them into
 /// real keystrokes and an ordinary `CGEvent` tap has no way to tell them apart
-/// from the keyboard.
+/// from the keyboard. Any receiver revision in `MouseReceiver.known` is
+/// recognised.
 ///
 /// This class listens to the mouse's own HID reports on a background run loop
 /// and keeps a short history. When a key press reaches the event tap a few
@@ -36,9 +37,6 @@ struct MouseKeySample: Sendable {
 /// It opens the device for reading only - nothing is seized or suppressed here,
 /// so normal mouse and keyboard use is unaffected.
 final class MouseKeyTagger: @unchecked Sendable {
-    static let vendorID = 0x1EA7
-    static let productID = 0x66
-
     /// How long after a HID report a key event is still attributed to the mouse.
     /// Reports land a couple of milliseconds before the event; the window is
     /// short enough that a real keystroke pressed at the same moment is not
@@ -132,10 +130,9 @@ final class MouseKeyTagger: @unchecked Sendable {
             }
 
             let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
-            let matches: [[String: Any]] = [
-                [kIOHIDVendorIDKey: Self.vendorID, kIOHIDProductIDKey: Self.productID]
-            ]
-            IOHIDManagerSetDeviceMatchingMultiple(manager, matches as CFArray)
+            // Exact IDs only: a vendor-only match would also capture other
+            // devices that share the receiver chip's vendor ID.
+            IOHIDManagerSetDeviceMatchingMultiple(manager, MouseReceiver.matchingDictionaries as CFArray)
             IOHIDManagerRegisterDeviceMatchingCallback(manager, taggerDeviceAdded, Unmanaged.passUnretained(self).toOpaque())
             IOHIDManagerRegisterInputValueCallback(manager, taggerValueReceived, Unmanaged.passUnretained(self).toOpaque())
 

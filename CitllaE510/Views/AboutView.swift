@@ -27,26 +27,34 @@ struct AboutView: View {
                 }
 
                 GroupBox("Device") {
-                    Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 8) {
-                        GridRow {
-                            Text("Reported name").foregroundStyle(.secondary)
-                            Text("2.4G Mouse")
+                    VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Supported receivers")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                            ForEach(MouseReceiver.known) { receiver in
+                                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                                    Text(receiver.name)
+                                    Spacer(minLength: 12)
+                                    Text(receiver.idDescription)
+                                        .font(.callout)
+                                        .monospaced()
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
                         }
-                        GridRow {
-                            Text("Vendor ID").foregroundStyle(.secondary)
-                            Text("0x1EA7").monospaced()
-                        }
-                        GridRow {
-                            Text("Product ID").foregroundStyle(.secondary)
-                            Text("0x0066").monospaced()
-                        }
-                        GridRow {
-                            Text("Buttons").foregroundStyle(.secondary)
-                            Text("8 (HID Button page, report ID 2)")
-                        }
-                        GridRow {
-                            Text("Extra interfaces").foregroundStyle(.secondary)
-                            Text("Consumer Control + vendor page 0xFFB5")
+
+                        Divider()
+
+                        Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 8) {
+                            GridRow {
+                                Text("Buttons").foregroundStyle(.secondary)
+                                Text("8 (HID Button page, report ID 2)")
+                            }
+                            GridRow {
+                                Text("Extra interfaces").foregroundStyle(.secondary)
+                                Text("Consumer Control + vendor page 0xFFB5")
+                            }
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)

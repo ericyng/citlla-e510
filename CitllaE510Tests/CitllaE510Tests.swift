@@ -1,4 +1,5 @@
 import AppKit
+@preconcurrency import IOKit.hid
 import XCTest
 @testable import CitllaE510
 
@@ -315,6 +316,52 @@ final class MouseMapTests: XCTestCase {
 
         let volume = ShortcutBinding(source: .consumer, consumerKey: 0)
         XCTAssertNil(MouseMap.control(forShortcut: volume), "consumer keys are not on the diagram")
+    }
+}
+
+final class MouseReceiverTests: XCTestCase {
+    func testBothObservedReceiverRevisionsAreKnown() {
+        XCTAssertNotNil(MouseReceiver.receiver(vendorID: 0x1EA7, productID: 0x66))
+        XCTAssertNotNil(MouseReceiver.receiver(vendorID: 0x32C2, productID: 0x12))
+        XCTAssertNil(MouseReceiver.receiver(vendorID: 0x1EA7, productID: 0x12))
+    }
+
+    func testOneExactMatchPerKnownReceiver() {
+        let matches = MouseReceiver.matchingDictionaries
+
+        XCTAssertEqual(matches.count, MouseReceiver.known.count)
+        for receiver in MouseReceiver.known {
+            let matching = matches.filter {
+                $0[kIOHIDVendorIDKey] as? Int == receiver.vendorID
+                    && $0[kIOHIDProductIDKey] as? Int == receiver.productID
+            }
+            XCTAssertEqual(matching.count, 1, "\(receiver.id) should have exactly one exact match")
+        }
+    }
+
+    func testVendorFallbacksAreDistinctAndDoNotConstrainTheProduct() {
+        let vendors = MouseReceiver.vendorMatchingDictionaries.compactMap { $0[kIOHIDVendorIDKey] as? Int }
+        let knownVendors = Set(MouseReceiver.known.map(\.vendorID))
+
+        XCTAssertEqual(vendors.count, knownVendors.count)
+        XCTAssertEqual(Set(vendors), knownVendors)
+        for match in MouseReceiver.vendorMatchingDictionaries {
+            XCTAssertNil(match[kIOHIDProductIDKey], "a vendor fallback must not constrain the product ID")
+        }
+    }
+
+    func testAppleVendorIsNeverMatched() {
+        let appleVendorID = 0x05AC
+
+        XCTAssertFalse(MouseReceiver.known.contains { $0.vendorID == appleVendorID })
+        XCTAssertFalse(
+            MouseReceiver.vendorMatchingDictionaries.contains { $0[kIOHIDVendorIDKey] as? Int == appleVendorID }
+        )
+    }
+
+    func testReceiverIDsAreStableAndUnique() {
+        XCTAssertEqual(Set(MouseReceiver.known.map(\.id)).count, MouseReceiver.known.count)
+        XCTAssertEqual(MouseReceiver.receiver(vendorID: 0x1EA7, productID: 0x66)?.id, "1EA7:0066")
     }
 }
 

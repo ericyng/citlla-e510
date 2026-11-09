@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		08B87AAB9EC060B8D69407C0 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF2B1796042A24B29F49927 /* SettingsView.swift */; };
 		194049572FB71D47724B5058 /* ShortcutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98BED303DDB87F08A81BAC5B /* ShortcutRecorder.swift */; };
+		2ABA85FDBFA980BD44CEF8BA /* MouseReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E3A08F7FD3B7B58B2D20F0B /* MouseReceiver.swift */; };
 		2C9C205939B7B7BEECFCFBA0 /* Snapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC981525B528C8C7D4620B18 /* Snapshot.swift */; };
 		30EEE01145EE4867BCFC95F7 /* ConfigStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA09A42C2029743833F1A7E6 /* ConfigStore.swift */; };
 		334929FFB478DE7FEFABA637 /* ActionProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3555498B3C43ECFEAE7B9EC /* ActionProbe.swift */; };
@@ -61,6 +62,7 @@
 		201592ADEAE3A5917F727B66 /* HIDMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDMonitor.swift; sourceTree = "<group>"; };
 		2250ECF637ADA329F1168D83 /* CitllaE510.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CitllaE510.entitlements; sourceTree = "<group>"; };
 		24D9C2BC846F00910BC0F2EF /* EventTapService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTapService.swift; sourceTree = "<group>"; };
+		2E3A08F7FD3B7B58B2D20F0B /* MouseReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseReceiver.swift; sourceTree = "<group>"; };
 		3EC3F329932290601CBDF00F /* ActionEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionEditorSheet.swift; sourceTree = "<group>"; };
 		49637FBEBBA9734BAD28AAD9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		558CBB6387AB4B290173F220 /* ButtonTester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonTester.swift; sourceTree = "<group>"; };
@@ -107,6 +109,7 @@
 				FA09A42C2029743833F1A7E6 /* ConfigStore.swift */,
 				17D90DB6A59BAFC9BE0DB5E2 /* MouseAction.swift */,
 				023A3D01602E214FF7939349 /* MouseMap.swift */,
+				2E3A08F7FD3B7B58B2D20F0B /* MouseReceiver.swift */,
 				7D208ADFCF90FF812179883B /* ShortcutBinding.swift */,
 			);
 			path = Models;
@@ -300,6 +303,7 @@
 				A2F226A9E7C41F55C828D939 /* MouseKeyTagger.swift in Sources */,
 				C45DAAB448CBA596174E839B /* MouseMap.swift in Sources */,
 				C785CAEA633351C6E510F084 /* MouseMapView.swift in Sources */,
+				2ABA85FDBFA980BD44CEF8BA /* MouseReceiver.swift in Sources */,
 				9E08A205F7E8E9CBDAB36AE3 /* PermissionManager.swift in Sources */,
 				95E515360B345145B7B94E44 /* PermissionsView.swift in Sources */,
 				08B87AAB9EC060B8D69407C0 /* SettingsView.swift in Sources */,

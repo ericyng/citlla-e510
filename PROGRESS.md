@@ -10,8 +10,9 @@ log.
 
 - Debug and Release builds are healthy; `Scripts/build.sh` runs tests, builds,
   verifies the bundle, installs and launches.
-- 42 unit tests pass (config round-trip, action model, button naming, key codes,
-  shortcut bindings, media-key decoding, and the diagram's nine callouts).
+- 47 unit tests pass (config round-trip, action model, button naming, key codes,
+  shortcut bindings, media-key decoding, receiver matching, and the diagram's
+  nine callouts).
 - Menu bar app (`LSUIElement`): menu bar icon, Settings (Mouse / Buttons /
   Permissions / About), Diagnostics, Button Tester.
 - Current bindings in `~/Library/Application Support/CitllaE510/config.json`:
@@ -45,7 +46,7 @@ Accessibility appears.
 | Area | Notes |
 | --- | --- |
 | Remapping | `CGEventTap` at the session level, head insert, suppresses the original button pair and runs the chosen action. Events it posts itself are stamped so they are not remapped twice. |
-| Mouse keystrokes | `MouseKeyTagger` opens the receiver (VID `0x1EA7`, PID `0x66`) read-only with `IOHIDManager` on a background run loop. Key-downs are recorded for 120 ms; the tap only acts when the mouse just sent that key. Modifier key-downs are matched before a sample is claimed, so `⌃`/`⌘` down does not steal the tag for the key after it. |
+| Mouse keystrokes | `MouseKeyTagger` opens the receiver (any ID in `MouseReceiver.known`: `0x1EA7:0x66`, `0x32C2:0x12`; see FIX-THUMB-BUTTONS.md) read-only with `IOHIDManager` on a background run loop. Key-downs are recorded for 120 ms; the tap only acts when the mouse just sent that key. Modifier key-downs are matched before a sample is claimed, so `⌃`/`⌘` down does not steal the tag for the key after it. |
 | Actions | macOS actions (Mission Control, Show Desktop, Launchpad, screenshot…), any keyboard shortcut, mouse clicks, open app / URL / shell command. Mission Control, App Exposé, Show Desktop and Launchpad go through the Dock; everything else is posted as events. |
 | Settings → Mouse | The two renders cut from the manufacturer's diagram, next to the nine numbered callouts with the diagram's own wording. Callout 8 shows both thumb-button actions. Clicking a row opens the action editor. Fixed 860×720 window. |
 | Settings → Buttons | Toggle, a **Mouse Keystrokes** section (`⌃←` / `⌃→` / `⌃⌘F`, all editable), and the eight reported mouse buttons. |
@@ -200,3 +201,7 @@ opaque pixels on their edges.
   Spotlight and Lock Screen marked "(not available)" in the action picker
 - today: `--snapshot --scale N` renders the windows at N device pixels per point;
   the 2x renders live in `docs/screenshots/` and are shown in the README
+- today: receiver matching moved from one hard-coded pair to `MouseReceiver.known`
+  (`0x1EA7:0x66` and `0x32C2:0x12`), so both E510 receiver revisions remap;
+  Diagnostics adds vendor-only fallbacks, the tagger stays on exact IDs, and the
+  About tab lists the supported receivers

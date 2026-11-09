@@ -203,15 +203,26 @@ the same permission. The app asks for it on first launch and
 
 ## How it works
 
-The CITLLA receiver enumerates as `2.4G Mouse` with:
+The E510 has shipped with more than one 2.4 GHz receiver. Both enumerate with
+the same interfaces but different IDs:
 
-- Vendor ID `0x1EA7`
-- Product ID `0x0066`
+| Receiver | Reported name | Vendor ID | Product ID |
+| --- | --- | --- | --- |
+| Original | `2.4G Mouse` | `0x1EA7` | `0x0066` |
+| HS6209 | `2.4G Wireless Receiver` | `0x32C2` | `0x0012` |
+
+Each receiver exposes:
+
 - A mouse interface (usage page `0x01`, usage `0x02`) with an 8-button report
   (`Report ID 2`)
 - A consumer-control collection
 - A vendor-defined collection on page `0xFFB5`
 - A keyboard interface used by the receiver
+
+The list lives in `MouseReceiver.known` (`CitllaE510/Models/MouseReceiver.swift`).
+Both the key tagger and Diagnostics match against it, so a mouse with either
+receiver works without rebuilding. A receiver with different IDs needs one more
+entry there.
 
 The app creates a `CGEventTap` at the session level. On mouse down it maps the
 CGEvent button number (0-based) to the HID button number (1-based), looks up the
@@ -234,8 +245,10 @@ The four Dock actions are toggles - pressing the same button again closes them.
 
 A binding is system-wide: it applies to every mouse that reports the same button
 number, not only the CITLLA. Mouse-sent keystrokes are attributed by the HID
-listener, so they stay specific to the CITLLA receiver (VID `0x1EA7`,
-PID `0x0066`).
+listener, so they stay specific to a CITLLA receiver (any ID in
+`MouseReceiver.known`). Matching is by exact vendor/product pair on purpose:
+also matching a whole vendor would capture devices that share the receiver
+chip's generic vendor ID.
 
 ## Diagnostics
 
@@ -267,9 +280,10 @@ use **Reset Defaults** in Settings) to start over.
 ## Limitations
 
 - The event tap remaps mouse buttons globally; there is no per-device filter.
-- Keystroke attribution is tied to the CITLLA receiver (VID `0x1EA7`,
-  PID `0x0066`). A control that sends a keystroke from a different device would
-  be treated as normal keyboard input.
+- Keystroke attribution is tied to the receivers in `MouseReceiver.known`
+  (`0x1EA7:0x0066` and `0x32C2:0x0012`). A control that sends a keystroke from a
+  receiver with different IDs would be treated as normal keyboard input until
+  that receiver is added to the list.
 - Left and right click can be remapped, but doing so can make normal clicking
   awkward. The defaults leave them alone.
 - Horizontal scroll/tilt (`AC Pan`) is not remapped in this version.
@@ -293,6 +307,18 @@ well, because this mouse sends them as `⌃←` / `⌃→` keystrokes. Both card
 Settings → Permissions must say *Granted*. Builds made before the stable ad hoc
 requirement was added pinned the binary, so a grant from one of those builds is
 stale; remove Citlla E510 from both privacy lists and add it again once.
+
+**The thumb buttons do nothing on a different E510.**
+The mouse has shipped with more than one 2.4 GHz receiver. The app recognises
+the revisions listed in `MouseReceiver.known`; check which one is attached:
+
+```sh
+ioreg -r -c IOHIDDevice -l -w0 | grep -E '"(Product|VendorID|ProductID)"'
+```
+
+If the receiver's IDs are missing from that list, add a
+`MouseReceiver(vendorID: 0x…, productID: 0x…, name: "…")` entry and rebuild.
+`ioreg` prints the IDs in decimal, so convert them to hex first.
 
 **The app does not appear in Accessibility.**
 Drag `CitllaE510.app` from Finder into the Accessibility list, or use the `+`

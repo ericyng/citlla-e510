@@ -63,10 +63,10 @@ final class HIDMonitor: ObservableObject {
         guard manager == nil else { return }
 
         let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
-        let matches: [[String: Any]] = [
-            [kIOHIDVendorIDKey: 0x1EA7, kIOHIDProductIDKey: 0x66],
-            [kIOHIDVendorIDKey: 0x1EA7]
-        ]
+        // Exact matches, plus a vendor-only fallback per known vendor so an
+        // unrecognised receiver revision from the E510's manufacturer still
+        // appears in Diagnostics. The key tagger uses exact IDs only.
+        let matches = MouseReceiver.matchingDictionaries + MouseReceiver.vendorMatchingDictionaries
         IOHIDManagerSetDeviceMatchingMultiple(manager, matches as CFArray)
 
         let context = Unmanaged.passUnretained(self).toOpaque()
