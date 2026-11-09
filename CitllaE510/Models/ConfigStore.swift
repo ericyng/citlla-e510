@@ -45,6 +45,26 @@ final class ConfigStore: ObservableObject {
         config.setAction(action, for: button)
     }
 
+    /// Keboard/consumer controls the mouse sends. These are not mouse buttons,
+    /// so they are kept apart from `bindings`.
+    var shortcutBindings: [ShortcutBinding] { config.shortcutBindings }
+
+    func shortcut(id: String) -> ShortcutBinding? {
+        config.shortcut(id: id)
+    }
+
+    func action(forKeyboardKeyCode keyCode: UInt16, modifiers: UInt) -> MouseAction? {
+        config.action(forKeyboardKeyCode: keyCode, modifiers: modifiers)?.1
+    }
+
+    func action(forConsumerKey key: Int32) -> MouseAction? {
+        config.action(forConsumerKey: key)?.1
+    }
+
+    func setAction(_ action: MouseAction, forShortcut id: String) {
+        config.setAction(action, forShortcut: id)
+    }
+
     func resetToDefaults() {
         config.resetToDefaults()
     }

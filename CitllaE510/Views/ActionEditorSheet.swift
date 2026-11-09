@@ -3,26 +3,75 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct ActionEditorSheet: View {
-    let button: ButtonBinding
+    /// What is being edited: a mouse button, or a key the mouse sends.
+    enum Target: Identifiable {
+        case button(ButtonBinding)
+        case shortcut(ShortcutBinding)
+
+        var id: String {
+            switch self {
+            case .button(let binding): "button-\(binding.button)"
+            case .shortcut(let binding): "shortcut-\(binding.id)"
+            }
+        }
+
+        var name: String {
+            switch self {
+            case .button(let binding): binding.name
+            case .shortcut(let binding): binding.name
+            }
+        }
+
+        var subtitle: String {
+            switch self {
+            case .button(let binding): binding.subtitle
+            case .shortcut(let binding): binding.subtitle
+            }
+        }
+
+        var symbolName: String {
+            switch self {
+            case .button: "computermouse"
+            case .shortcut: "keyboard"
+            }
+        }
+
+        var action: MouseAction {
+            switch self {
+            case .button(let binding): binding.action
+            case .shortcut(let binding): binding.action
+            }
+        }
+    }
+
+    let target: Target
     @EnvironmentObject private var config: ConfigStore
     @Environment(\.dismiss) private var dismiss
 
     @State private var draft: MouseAction
 
+    init(target: Target) {
+        self.target = target
+        _draft = State(initialValue: target.action)
+    }
+
     init(button: ButtonBinding) {
-        self.button = button
-        _draft = State(initialValue: button.action)
+        self.init(target: .button(button))
+    }
+
+    init(shortcut: ShortcutBinding) {
+        self.init(target: .shortcut(shortcut))
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 12) {
-                Image(systemName: "computermouse")
+                Image(systemName: target.symbolName)
                     .font(.system(size: 24, weight: .medium))
                     .foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(button.name).font(.headline)
-                    Text(button.subtitle).font(.caption).foregroundStyle(.secondary)
+                    Text(target.name).font(.headline)
+                    Text(target.subtitle).font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
             }
@@ -90,6 +139,12 @@ struct ActionEditorSheet: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+
+                if case .shortcut = target {
+                    Text("Only the mouse's own presses of this key are remapped. The same shortcut on the keyboard still works normally.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             .formStyle(.grouped)
             .padding(.horizontal, 8)
@@ -102,7 +157,7 @@ struct ActionEditorSheet: View {
                 Button("Cancel") { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Button("Save") {
-                    config.setAction(draft, for: button.button)
+                    save()
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
@@ -111,6 +166,15 @@ struct ActionEditorSheet: View {
             .padding(16)
         }
         .frame(width: 560)
+    }
+
+    private func save() {
+        switch target {
+        case .button(let binding):
+            config.setAction(draft, for: binding.button)
+        case .shortcut(let binding):
+            config.setAction(draft, forShortcut: binding.id)
+        }
     }
 
     private func chooseApp() {

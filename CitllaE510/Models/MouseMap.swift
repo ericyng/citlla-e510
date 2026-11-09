@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 /// One of the nine numbered callouts printed on the CITLLA PRO MAX E510's own
@@ -32,12 +33,20 @@ struct MouseControl: Identifiable, Hashable, Sendable {
     /// The LEDs on top of the mouse are not buttons; there is nothing to remap.
     var isRemappable: Bool { kind != .indicator }
 
-    /// The key code and modifiers the factory profile sends on macOS, if any.
-    var factoryShortcut: (keyCode: UInt16, modifiers: UInt)? {
+    /// The keys the factory profile makes macOS receive, if this control sends
+    /// a keystroke instead of a mouse button.
+    var factoryShortcuts: [(keyCode: UInt16, modifiers: UInt)] {
         switch number {
-        case 6: (48, 1 << 20)                     // ⌘Tab — Switch Applications
-        case 9: (3, (1 << 18) | (1 << 20))        // ⌃⌘F — Full Screen
-        default: nil
+        case 8: [
+            (123, NSEvent.ModifierFlags.control.rawValue),          // ⌃← rear thumb button
+            (124, NSEvent.ModifierFlags.control.rawValue)           // ⌃→ front thumb button
+        ]
+        case 6: [(48, NSEvent.ModifierFlags.command.rawValue)]      // ⌘Tab
+        case 9: [(
+            3,
+            NSEvent.ModifierFlags.control.rawValue | NSEvent.ModifierFlags.command.rawValue
+        )]                                                          // ⌃⌘F
+        default: []
         }
     }
 }
@@ -103,10 +112,10 @@ enum MouseMap {
         MouseControl(
             number: 8,
             title: "Forward / Back Buttons",
-            note: "Two thumb buttons. Arrive as buttons 4 and 5.",
+            note: "Two thumb buttons. This mouse sends them as ⌃← and ⌃→ keystrokes.",
             kind: .button,
             render: .side,
-            hidButtons: [4, 5]
+            hidButtons: []
         ),
         MouseControl(
             number: 9,
@@ -131,12 +140,19 @@ enum MouseMap {
     /// against the device-independent flags so Caps Lock and the like do not
     /// break the match.
     static func control(forKeyCode keyCode: UInt16, modifiers: UInt) -> MouseControl? {
-        let interesting: UInt = (1 << 18) | (1 << 17) | (1 << 19) | (1 << 20) // ⌃ ⌥ ⇧ ⌘
-        let flags = modifiers & interesting
+        let flags = ShortcutBinding.masked(modifiers)
         return controls.first { control in
-            guard let factory = control.factoryShortcut else { return false }
-            return factory.keyCode == keyCode && factory.modifiers == flags
+            control.factoryShortcuts.contains { factory in
+                factory.keyCode == keyCode && ShortcutBinding.masked(factory.modifiers) == flags
+            }
         }
+    }
+
+    /// The callout a stored shortcut binding belongs to, if the diagram names
+    /// the control that sends it.
+    static func control(forShortcut binding: ShortcutBinding) -> MouseControl? {
+        guard binding.source == .keyboard else { return nil }
+        return control(forKeyCode: binding.keyCode, modifiers: binding.modifiers)
     }
 
     /// Every control that is worth showing in a "press it now" list.

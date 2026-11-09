@@ -3,7 +3,7 @@ import SwiftUI
 
 struct TesterView: View {
     @ObservedObject var tester: ButtonTester
-    var action: (MouseControl) -> MouseAction? = { _ in nil }
+    var actions: (MouseControl) -> [MouseAction] = { _ in [] }
 
     @State private var pulse: Set<Int> = []
 
@@ -79,7 +79,7 @@ struct TesterView: View {
                         .font(.headline)
                         .padding(.bottom, 2)
                     MouseControlLegend(
-                        action: action,
+                        actions: actions,
                         detection: detection(for:),
                         highlighted: pulse
                     )

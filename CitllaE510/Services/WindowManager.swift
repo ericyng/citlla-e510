@@ -13,6 +13,7 @@ final class WindowManager: NSObject, NSWindowDelegate {
 
     private var config: ConfigStore?
     private var eventTap: EventTapService?
+    private var tagger: MouseKeyTagger?
     private var loginItem: LoginItemManager?
 
     private var settingsWindow: NSWindow?
@@ -24,9 +25,15 @@ final class WindowManager: NSObject, NSWindowDelegate {
         super.init()
     }
 
-    func configure(config: ConfigStore, eventTap: EventTapService, loginItem: LoginItemManager) {
+    func configure(
+        config: ConfigStore,
+        eventTap: EventTapService,
+        tagger: MouseKeyTagger,
+        loginItem: LoginItemManager
+    ) {
         self.config = config
         self.eventTap = eventTap
+        self.tagger = tagger
         self.loginItem = loginItem
     }
 
@@ -62,14 +69,18 @@ final class WindowManager: NSObject, NSWindowDelegate {
             present(window)
             return
         }
-        guard let config else { return }
-        let tester = ButtonTester(config: config)
+        guard let config, let tagger else { return }
+        let tester = ButtonTester(config: config, tagger: tagger)
         self.tester = tester
         let window = makeWindow(
             title: "Citlla E510 Button Tester",
-            content: TesterView(tester: tester, action: { control in
-                guard let button = control.hidButtons.first else { return nil }
-                return config.binding(for: button).action
+            content: TesterView(tester: tester, actions: { control in
+                if let button = control.hidButtons.first {
+                    return [config.binding(for: button).action]
+                }
+                return config.shortcutBindings
+                    .filter { MouseMap.control(forShortcut: $0)?.number == control.number }
+                    .map(\.action)
             }),
             size: NSSize(width: 940, height: 720)
         )

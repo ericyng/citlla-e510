@@ -12,7 +12,7 @@ struct PermissionsView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     Text("Permissions")
                         .font(.largeTitle.bold())
-                    Text("Citlla E510 needs Accessibility access to intercept and replace mouse button events. Input Monitoring is optional and only used by the diagnostics window.")
+                    Text("Citlla E510 needs Accessibility access to intercept and replace mouse button events. It needs Input Monitoring to recognise the keystrokes this mouse sends for its thumb buttons.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
 
@@ -36,7 +36,7 @@ struct PermissionsView: View {
                     PermissionCard(
                         title: "Input Monitoring",
                         symbol: "eye.fill",
-                        description: "Optional. Lets the diagnostics window read raw HID reports so you can identify unknown buttons and vendor-specific controls.",
+                        description: "Required for the thumb buttons on this mouse. They arrive as ⌃← and ⌃→ keystrokes, so the app reads the mouse's own HID reports to tell them apart from your keyboard. The diagnostics window uses the same permission.",
                         status: PermissionManager.inputMonitoringStatusText,
                         isGranted: hasInputMonitoring,
                         primaryTitle: hasInputMonitoring ? "Open Settings" : "Request Access",
@@ -83,6 +83,17 @@ struct PermissionsView: View {
                 }
                 .padding(24)
                 .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .task {
+            // Grants usually land while this window is open, a moment after the
+            // switch is flipped in System Settings. Start the tap as soon as
+            // Accessibility appears so there is nothing else to click.
+            while !Task.isCancelled {
+                if PermissionManager.hasAccessibility, !eventTap.isRunning {
+                    eventTap.startIfNeeded()
+                }
+                try? await Task.sleep(for: .seconds(1))
             }
         }
     }

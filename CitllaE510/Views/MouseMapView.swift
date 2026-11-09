@@ -79,7 +79,7 @@ struct MouseRenderPair: View {
 /// The nine callouts as a list. In Settings each row opens the binding behind
 /// it; in the tester each row reports what the physical control actually sent.
 struct MouseControlLegend: View {
-    var action: (MouseControl) -> MouseAction? = { _ in nil }
+    var actions: (MouseControl) -> [MouseAction] = { _ in [] }
     var detection: (MouseControl) -> String? = { _ in nil }
     var highlighted: Set<Int> = []
     var onSelect: ((MouseControl) -> Void)? = nil
@@ -97,7 +97,7 @@ struct MouseControlLegend: View {
 
     @ViewBuilder
     private func row(for control: MouseControl) -> some View {
-        let bound = action(control)
+        let bound = actions(control)
         let detected = detection(control)
         let row = HStack(alignment: .top, spacing: 12) {
             MouseControlBadge(
@@ -118,11 +118,11 @@ struct MouseControlLegend: View {
 
             Spacer(minLength: 8)
 
-            if let bound {
+            if !bound.isEmpty {
                 HStack(spacing: 6) {
-                    Text(bound.summary)
+                    Text(bound.map(\.summary).joined(separator: " · "))
                         .font(.caption)
-                        .foregroundStyle(bound.isBound ? .primary : .secondary)
+                        .foregroundStyle(bound.contains(where: \.isBound) ? .primary : .secondary)
                         .lineLimit(1)
                     if onSelect != nil, control.isRemappable {
                         Image(systemName: "chevron.right")

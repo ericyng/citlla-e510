@@ -48,6 +48,7 @@ final class AppConfigTests: XCTestCase {
         XCTAssertFalse(config.enabled)
         XCTAssertEqual(config.bindings.count, 8)
         XCTAssertEqual(config.action(for: 4)?.system, .back)
+        XCTAssertEqual(config.shortcutBindings, ShortcutBinding.defaults)
     }
 
     func testCodableRoundTrip() throws {
@@ -59,6 +60,86 @@ final class AppConfigTests: XCTestCase {
         let decoded = try JSONDecoder().decode(AppConfig.self, from: data)
 
         XCTAssertEqual(decoded, config)
+    }
+
+    // MARK: - Keys the mouse sends
+
+    func testDefaultsBindThumbButtonKeystrokes() {
+        let config = AppConfig()
+        let control = NSEvent.ModifierFlags.control.rawValue
+
+        XCTAssertEqual(config.shortcutBindings.count, 2)
+        XCTAssertEqual(
+            config.action(forKeyboardKeyCode: 123, modifiers: control)?.1,
+            MouseAction(kind: .system, system: .back)
+        )
+        XCTAssertEqual(
+            config.action(forKeyboardKeyCode: 124, modifiers: control)?.1,
+            MouseAction(kind: .system, system: .forward)
+        )
+        XCTAssertNil(config.action(forKeyboardKeyCode: 123, modifiers: 0))
+    }
+
+    func testCapsLockDoesNotDefeatShortcutMatching() {
+        let config = AppConfig()
+        let modifiers = NSEvent.ModifierFlags([.control, .capsLock, .numericPad]).rawValue
+
+        XCTAssertEqual(
+            config.action(forKeyboardKeyCode: 123, modifiers: modifiers)?.1.system,
+            .back
+        )
+    }
+
+    func testSetActionForShortcut() {
+        var config = AppConfig()
+        let id = ShortcutBinding.defaults[0].id
+
+        config.setAction(MouseAction(kind: .system, system: .missionControl), forShortcut: id)
+
+        XCTAssertEqual(config.shortcut(id: id)?.action.system, .missionControl)
+        XCTAssertEqual(config.shortcutBindings.count, 2, "existing shortcuts should be updated, not duplicated")
+    }
+
+    func testLearnKeyboardShortcutAddsOnce() {
+        var config = AppConfig()
+        let command = NSEvent.ModifierFlags.command.rawValue
+
+        let first = config.learnKeyboardShortcut(keyCode: 48, modifiers: command)
+        let second = config.learnKeyboardShortcut(keyCode: 48, modifiers: command)
+
+        XCTAssertEqual(first, second)
+        XCTAssertEqual(config.shortcutBindings.count, 3)
+        XCTAssertFalse(config.shortcut(id: first)?.action.isBound ?? true)
+    }
+
+    func testLearnConsumerKey() {
+        var config = AppConfig()
+
+        let id = config.learnConsumerKey(0)
+        let again = config.learnConsumerKey(0)
+
+        XCTAssertEqual(id, again)
+        XCTAssertEqual(config.shortcut(id: id)?.source, .consumer)
+        XCTAssertEqual(config.shortcutBindings.count, 3)
+    }
+
+    func testActionForConsumerKey() {
+        var config = AppConfig()
+        let id = config.learnConsumerKey(0)
+        config.setAction(MouseAction(kind: .system, system: .playPause), forShortcut: id)
+
+        XCTAssertEqual(config.action(forConsumerKey: 0)?.1.system, .playPause)
+        XCTAssertNil(config.action(forConsumerKey: 16))
+    }
+
+    func testResetRestoresShortcutDefaults() {
+        var config = AppConfig()
+        config.setAction(.none, forShortcut: ShortcutBinding.defaults[0].id)
+        config.learnConsumerKey(0)
+
+        config.resetToDefaults()
+
+        XCTAssertEqual(config.shortcutBindings, ShortcutBinding.defaults)
     }
 }
 
@@ -144,8 +225,10 @@ final class MouseMapTests: XCTestCase {
         XCTAssertEqual(MouseMap.control(forButton: 1)?.number, 1)
         XCTAssertEqual(MouseMap.control(forButton: 2)?.number, 2)
         XCTAssertEqual(MouseMap.control(forButton: 3)?.number, 3)
-        XCTAssertEqual(MouseMap.control(forButton: 4)?.number, 8)
-        XCTAssertEqual(MouseMap.control(forButton: 5)?.number, 8)
+        // This mouse does not send buttons 4 and 5; its thumb buttons send
+        // keystrokes instead (see `testShortcutBindingsResolveToCallouts`).
+        XCTAssertNil(MouseMap.control(forButton: 4))
+        XCTAssertNil(MouseMap.control(forButton: 5))
         XCTAssertNil(MouseMap.control(forButton: 9))
     }
 
@@ -162,6 +245,64 @@ final class MouseMapTests: XCTestCase {
             9
         )
         XCTAssertNil(MouseMap.control(forKeyCode: 3, modifiers: command))
+    }
+
+    func testShortcutBindingsResolveToCallouts() {
+        let control = NSEvent.ModifierFlags.control.rawValue
+
+        let back = ShortcutBinding(
+            keyCode: 123,
+            modifiers: control,
+            action: MouseAction(kind: .system, system: .back)
+        )
+        let forward = ShortcutBinding(keyCode: 124, modifiers: control)
+
+        XCTAssertEqual(MouseMap.control(forShortcut: back)?.number, 8)
+        XCTAssertEqual(MouseMap.control(forShortcut: forward)?.number, 8)
+
+        let volume = ShortcutBinding(source: .consumer, consumerKey: 0)
+        XCTAssertNil(MouseMap.control(forShortcut: volume), "consumer keys are not on the diagram")
+    }
+}
+
+final class ShortcutBindingTests: XCTestCase {
+    func testIdentityStableAcrossMatchingFlags() {
+        let control = NSEvent.ModifierFlags.control.rawValue
+        let capsLock = NSEvent.ModifierFlags.capsLock.rawValue
+
+        let plain = ShortcutBinding(keyCode: 123, modifiers: control)
+        let noisy = ShortcutBinding(keyCode: 123, modifiers: control | capsLock)
+
+        XCTAssertEqual(plain.id, noisy.id)
+        XCTAssertTrue(plain.matches(keyCode: 123, modifiers: control | capsLock))
+        XCTAssertFalse(plain.matches(keyCode: 123, modifiers: 0))
+        XCTAssertFalse(plain.matches(keyCode: 124, modifiers: control))
+    }
+
+    func testConsumerBindingsDoNotMatchKeyboardEvents() {
+        let binding = ShortcutBinding(source: .consumer, consumerKey: 0)
+
+        XCTAssertEqual(binding.id, "consumer-0")
+        XCTAssertFalse(binding.matches(keyCode: 0, modifiers: 0))
+    }
+
+    func testNamesComeFromKeyCodeAndNXKeyType() {
+        let control = NSEvent.ModifierFlags.control.rawValue
+
+        XCTAssertEqual(ShortcutBinding(keyCode: 123, modifiers: control).name, "⌃Left Arrow")
+        XCTAssertEqual(ShortcutBinding(source: .consumer, consumerKey: 0).name, "Volume Up")
+        XCTAssertEqual(ShortcutBinding(source: .consumer, consumerKey: 7).name, "Mute")
+    }
+}
+
+final class NXKeyStateTests: XCTestCase {
+    func testMediaKeyStateLivesInBits8To15() {
+        let down = (16 << 16) | (0xA << 8)
+        let up = (16 << 16) | (0xB << 8)
+
+        XCTAssertEqual(NXKeyState.keyType(from: down), 16)
+        XCTAssertTrue(NXKeyState.isDown(down))
+        XCTAssertFalse(NXKeyState.isDown(up))
     }
 }
 

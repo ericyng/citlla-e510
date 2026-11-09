@@ -48,7 +48,7 @@ struct MouseSettingsView: View {
     @Binding var selection: SettingsTab
     @EnvironmentObject private var config: ConfigStore
 
-    @State private var editing: ButtonBinding?
+    @State private var editing: ActionEditorSheet.Target?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -69,7 +69,7 @@ struct MouseSettingsView: View {
 
                 ScrollView {
                     MouseControlLegend(
-                        action: action(for:),
+                        actions: actions(for:),
                         onSelect: edit(_:)
                     )
                 }
@@ -96,25 +96,38 @@ struct MouseSettingsView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 10)
         }
-        .sheet(item: $editing) { binding in
-            ActionEditorSheet(button: binding)
+        .sheet(item: $editing) { target in
+            ActionEditorSheet(target: target)
                 .environmentObject(config)
         }
     }
 
-    /// The action behind a callout, when the callout is something the event tap
-    /// can actually bind.
-    private func action(for control: MouseControl) -> MouseAction? {
-        guard let button = control.hidButtons.first else { return nil }
-        return config.binding(for: button).action
+    /// The actions behind a callout. Most controls send one mouse button; the
+    /// thumb buttons send two different keystrokes.
+    private func actions(for control: MouseControl) -> [MouseAction] {
+        if let button = control.hidButtons.first {
+            return [config.binding(for: button).action]
+        }
+        return shortcutBindings(for: control).map(\.action)
+    }
+
+    private func shortcutBindings(for control: MouseControl) -> [ShortcutBinding] {
+        config.shortcutBindings.filter { MouseMap.control(forShortcut: $0)?.number == control.number }
     }
 
     private func edit(_ control: MouseControl) {
-        guard let button = control.hidButtons.first else {
-            selection = .buttons
+        if let button = control.hidButtons.first {
+            editing = .button(config.binding(for: button))
             return
         }
-        editing = config.binding(for: button)
+        let shortcuts = shortcutBindings(for: control)
+        if shortcuts.count == 1, let shortcut = shortcuts.first {
+            editing = .shortcut(shortcut)
+        } else {
+            // Two thumb buttons share callout 8; the Buttons tab lists each one
+            // separately so both can be edited.
+            selection = .buttons
+        }
     }
 }
 
@@ -122,7 +135,7 @@ struct ButtonsSettingsView: View {
     @EnvironmentObject private var config: ConfigStore
     @EnvironmentObject private var eventTap: EventTapService
 
-    @State private var editing: ButtonBinding?
+    @State private var editing: ActionEditorSheet.Target?
     @State private var confirmReset = false
 
     var body: some View {
@@ -154,12 +167,43 @@ struct ButtonsSettingsView: View {
                     Text("When disabled, every mouse button behaves normally.")
                 }
 
-                Section("Buttons") {
+                Section {
+                    if config.shortcutBindings.isEmpty {
+                        Text("Nothing learned yet. Press the thumb buttons while the tester is open.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(config.shortcutBindings) { binding in
+                            Button {
+                                editing = .shortcut(binding)
+                            } label: {
+                                BindingRow(
+                                    symbol: "keyboard",
+                                    name: binding.name,
+                                    subtitle: binding.subtitle,
+                                    action: binding.action
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                } header: {
+                    Text("Mouse Keystrokes")
+                } footer: {
+                    Text("This mouse sends its thumb buttons as ⌃← and ⌃→ instead of mouse buttons. They are remapped here, and only when the mouse itself sent the key — your keyboard still works normally.")
+                }
+
+                Section("Mouse Buttons") {
                     ForEach(config.config.bindings) { binding in
                         Button {
-                            editing = binding
+                            editing = .button(binding)
                         } label: {
-                            ButtonRow(binding: binding)
+                            BindingRow(
+                                symbol: "computermouse",
+                                name: binding.name,
+                                subtitle: binding.subtitle,
+                                action: binding.action
+                            )
                         }
                         .buttonStyle(.plain)
                     }
@@ -173,10 +217,17 @@ struct ButtonsSettingsView: View {
                 Circle()
                     .fill(eventTap.isRunning ? Color.green : Color.orange)
                     .frame(width: 8, height: 8)
-                Text(eventTap.isRunning ? "Listening for mouse buttons" : (eventTap.lastError ?? "Event tap is not running"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(eventTap.isRunning ? "Listening for mouse buttons" : (eventTap.lastError ?? "Event tap is not running"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    if !PermissionManager.hasInputMonitoring {
+                        Text("Input Monitoring is off — the thumb buttons cannot be recognised.")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                }
                 Spacer()
                 Button("Retry") { eventTap.restart() }
                     .controlSize(.small)
@@ -186,8 +237,8 @@ struct ButtonsSettingsView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
         }
-        .sheet(item: $editing) { binding in
-            ActionEditorSheet(button: binding)
+        .sheet(item: $editing) { target in
+            ActionEditorSheet(target: target)
                 .environmentObject(config)
         }
         .confirmationDialog(
@@ -200,25 +251,28 @@ struct ButtonsSettingsView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Button 4 will go back, button 5 will go forward, and all other extra buttons will do nothing.")
+            Text("The two thumb buttons will go back and forward. The mouse's other extra buttons will do nothing.")
         }
     }
 }
 
-private struct ButtonRow: View {
-    let binding: ButtonBinding
+private struct BindingRow: View {
+    let symbol: String
+    let name: String
+    let subtitle: String
+    let action: MouseAction
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "computermouse")
+            Image(systemName: symbol)
                 .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(binding.action.isBound ? Color.accentColor : Color.secondary)
+                .foregroundStyle(action.isBound ? Color.accentColor : Color.secondary)
                 .frame(width: 28)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(binding.name)
+                Text(name)
                     .font(.body.weight(.medium))
-                Text(binding.subtitle)
+                Text(subtitle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -226,10 +280,10 @@ private struct ButtonRow: View {
             Spacer()
 
             HStack(spacing: 8) {
-                Image(systemName: binding.action.symbolName)
+                Image(systemName: action.symbolName)
                     .foregroundStyle(.secondary)
-                Text(binding.action.summary)
-                    .foregroundStyle(binding.action.isBound ? .primary : .secondary)
+                Text(action.summary)
+                    .foregroundStyle(action.isBound ? .primary : .secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Image(systemName: "chevron.right")

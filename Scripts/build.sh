@@ -121,6 +121,25 @@ BUILT_APP="$DERIVED/Build/Products/$CONFIG/$APP_NAME.app"
 info "built $BUILT_APP"
 
 # ---------------------------------------------------------------------------
+step "Signing"
+if [[ -n "$SIGN_IDENTITY" ]]; then
+    info "signed with $SIGN_IDENTITY"
+else
+    # A plain ad hoc signature pins the exact binary, so every rebuild looks
+    # like a different app to TCC and the Accessibility / Input Monitoring
+    # grants are silently dropped. Re-sign with a designated requirement that
+    # names the app rather than the build, so a rebuild keeps its grants.
+    # A leading "=" tells codesign this is a requirement string, not a file.
+    REQUIREMENT="=designated => identifier \"$BUNDLE_ID\""
+    codesign --force --sign - \
+        --identifier "$BUNDLE_ID" \
+        --requirements "$REQUIREMENT" \
+        --entitlements CitllaE510/CitllaE510.entitlements \
+        "$BUILT_APP" >/dev/null 2>&1 || fail "ad hoc re-sign failed"
+    info "ad hoc, stable designated requirement (grants survive rebuilds)"
+fi
+
+# ---------------------------------------------------------------------------
 step "Verifying bundle"
 codesign --verify --deep --strict "$BUILT_APP" 2>/dev/null || fail "code signature does not verify"
 
@@ -173,11 +192,12 @@ LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Versions/A/Framewor
 [[ -x "$LSREGISTER" ]] && "$LSREGISTER" -f "$TARGET" >/dev/null 2>&1 || true
 info "installed $TARGET"
 
-# A rebuild changes an ad hoc signature, so an earlier Accessibility grant no
-# longer matches the new binary.
+# The ad hoc signature uses an identifier-based designated requirement, so a
+# grant from an earlier build still matches. Only builds made before that
+# change (or with a different identity) need the list entry refreshed.
 if ! codesign -dv "$TARGET" 2>&1 | grep -q "^Authority="; then
-    warn "this build is signed ad hoc, so an Accessibility grant from a previous build may be stale"
-    warn "if remapping stops working: tccutil reset Accessibility $BUNDLE_ID"
+    info "ad hoc signature keeps existing TCC grants across rebuilds"
+    info "if remapping stops working anyway: tccutil reset Accessibility $BUNDLE_ID"
 fi
 
 # ---------------------------------------------------------------------------

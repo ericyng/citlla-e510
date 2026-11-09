@@ -12,18 +12,20 @@ button event with that action.
 
 ## Defaults
 
-The mouse reports **8 buttons** in its HID report descriptor. Out of the box:
+The CITLLA PRO MAX E510 does not report its extra buttons as ordinary mouse
+buttons. Its receiver also presents a keyboard interface, and the two thumb
+buttons send `⌃←` and `⌃→` as real keystrokes. Citlla E510 watches the mouse's
+own HID reports so it can tell those keystrokes apart from the same shortcuts on
+your keyboard. Out of the box:
 
-| Button | Default |
+| Control | Default |
 | --- | --- |
-| 1 (left) | Pass through |
-| 2 (right) | Pass through |
-| 3 (wheel click) | Pass through |
-| 4 (rear side button) | Back (`⌘[`) |
-| 5 (front side button) | Forward (`⌘]`) |
-| 6–8 | Pass through (assign your own) |
+| Left, right and wheel click | Pass through |
+| Rear thumb button (sends `⌃←`) | Back (`⌘[`) |
+| Front thumb button (sends `⌃→`) | Forward (`⌘]`) |
+| Buttons 4–8 | Pass through (this mouse does not send them) |
 
-You can bind buttons to:
+You can bind a control to:
 
 - macOS actions: Mission Control, App Exposé, Show Desktop, Launchpad,
   Spotlight, Screenshot, Lock Screen, Sleep Display, media keys, volume, and
@@ -51,7 +53,7 @@ to change that control's binding.
 | 5 | Side Wheel | horizontal scroll | wheel tilt, not a button |
 | 6 | Devices Switch Button | switch paired device | sends `⌘Tab` in the factory profile |
 | 7 | Devices Indicators | 2.4G / BT1 / BT2 / DPI / low power LEDs | not a button |
-| 8 | Forward / Back Buttons | the two thumb buttons | buttons 4 and 5 |
+| 8 | Forward / Back Buttons | the two thumb buttons | sends `⌃←` and `⌃→` |
 | 9 | Return to Desktop / Full Screen | bottom-right thumb button | sends `⌃⌘F` in the factory profile |
 
 ## Button tester
@@ -59,9 +61,11 @@ to change that control's binding.
 **Test Buttons…** in the menu bar opens a listen-only window: it shows the same
 demo, highlights each control as you press it, prints how many times it was
 seen, and keeps a raw event log of mouse buttons, wheel and tilt, keyboard
-shortcuts and media keys. Nothing is suppressed while the tester is open, so it
-is safe to leave open while you try things. **Copy Report** puts a plain-text
-summary on the clipboard.
+shortcuts and media keys. Keystrokes that came from the mouse are labelled
+**Mouse key** and marked as bindable or not; keystrokes from your keyboard are
+labelled separately and never trigger a remap. Nothing is suppressed while the
+tester is open, so it is safe to leave open while you try things. **Copy Report**
+puts a plain-text summary on the clipboard.
 
 If a control shows up in the tester but is not one of the diagram's numbers, the
 window calls it out under **Not on the diagram** — that is the signal that the
@@ -118,18 +122,19 @@ Scripts/build.sh --sign ID    # sign with a keychain identity (see below)
 ```
 
 The script stops if a copy is already running, so quit it (or stop it in Xcode)
-before installing. It also warns when the build is ad hoc signed, because that
-invalidates an existing Accessibility grant.
+before installing.
 
-Signing with a real identity keeps the code signature stable across rebuilds,
-which means macOS keeps the Accessibility grant:
+With no signing identity it re-signs ad hoc, but with a designated requirement
+that names the bundle (`designated => identifier "com.ericng.citllae510"`)
+instead of pinning the binary. TCC matches that requirement, so Accessibility
+and Input Monitoring grants survive later rebuilds. A plain ad hoc signature
+pins the cdhash, which is why a rebuild used to drop the grants.
+
+Signing with a real identity also works and is the way to go if you have one:
 
 ```sh
 Scripts/build.sh --sign "Apple Development: you@example.com (TEAMID)"
 ```
-
-With no identity available, the alternative is to install to `/Applications` and
-re-grant Accessibility from System Settings after each rebuild.
 
 The app is a menu bar utility (`LSUIElement`), so it has no Dock icon and does
 not open a window by itself. Look for the mouse icon in the menu bar.
@@ -141,12 +146,10 @@ bar, and **Quit Citlla E510** in the menu bar is the way to stop it.
 
 ### Running from Xcode
 
-Each `Run` launches a new copy out of DerivedData, and an ad-hoc signature
-changes with every rebuild, so an existing Accessibility grant silently stops
-applying. If the menu says *Accessibility permission is required* even though
-the toggle is on, remove Citlla E510 from the Accessibility list, add it back,
-then press **Restart Event Tap**. Granting the copy built into `/Applications`
-instead of the DerivedData build avoids this.
+Each `Run` launches a new copy out of DerivedData, which is a different app from
+the copy in `/Applications` as far as TCC is concerned, so a grant made to one
+does not apply to the other. Grant the copy you actually run, and prefer the
+`/Applications` build from `Scripts/build.sh` over Xcode runs.
 
 ## Permissions
 
@@ -156,15 +159,21 @@ Button remapping needs **System Settings → Privacy & Security → Accessibilit
 The app asks for it on first launch and links to the right pane. If Citlla E510
 is not listed, add it manually or drag the app from Finder into the list.
 
-After granting access, open **Settings → Permissions → Restart Event Tap** if
-the status still says the event tap is inactive. macOS may also need the app to
-be relaunched once after a rebuild.
+The app starts the event tap by itself as soon as Accessibility appears in
+Settings, so there is usually nothing else to click. **Settings → Permissions →
+Restart Event Tap** is there if the status still says the event tap is inactive.
 
-### Input Monitoring (optional)
+### Input Monitoring (required for the thumb buttons)
 
-The **Diagnostics** window can read raw HID reports so you can identify buttons
-that are not in the default list. That requires **Input Monitoring**. Remapping
-itself works with Accessibility alone.
+The mouse sends its two thumb buttons as real keystrokes (`⌃←` and `⌃→`). To
+tell those apart from the same shortcuts on your keyboard, Citlla E510 reads the
+mouse's own HID reports. That requires **System Settings → Privacy & Security →
+Input Monitoring**.
+
+Without it, ordinary mouse buttons and wheel clicks still work, but the thumb
+buttons are left exactly as macOS delivers them. The **Diagnostics** window uses
+the same permission. The app asks for it on first launch and
+**Settings → Permissions** shows the current state.
 
 ## How it works
 
@@ -183,8 +192,23 @@ CGEvent button number (0-based) to the HID button number (1-based), looks up the
 binding, suppresses the original down/up pair, and runs the action. Events the
 app posts itself are stamped with a marker so the tap never remaps them twice.
 
+The thumb buttons are not mouse buttons: they arrive as real key events on the
+receiver's keyboard interface. A read-only `IOHIDManager` listener on a
+background thread records each key the mouse sends, and the tap only acts on
+`⌃←` / `⌃→` when that listener saw the mouse send the key within the last
+120 ms. The same shortcuts on your keyboard still behave normally.
+
+For Mission Control, App Exposé, Show Desktop and Launchpad the app asks the
+Dock to do it (`CoreDockSendNotification`, and the `AXShowExpose` accessibility
+action on the frontmost app's Dock tile for App Exposé). Posting the matching
+keystrokes does not work: the WindowServer matches its own shortcuts against
+real HID events, so synthetic ones are ignored whatever their source or tap.
+The four Dock actions are toggles - pressing the same button again closes them.
+
 A binding is system-wide: it applies to every mouse that reports the same button
-number, not only the CITLLA.
+number, not only the CITLLA. Mouse-sent keystrokes are attributed by the HID
+listener, so they stay specific to the CITLLA receiver (VID `0x1EA7`,
+PID `0x0066`).
 
 ## Diagnostics
 
@@ -209,11 +233,16 @@ Bindings are stored at:
 ~/Library/Application Support/CitllaE510/config.json
 ```
 
-Delete that file (or use **Reset Defaults** in Settings) to start over.
+`bindings` holds the mouse buttons, and `shortcutBindings` holds the keys the
+mouse sends (`⌃←`, `⌃→`, and any media key you add later). Delete that file (or
+use **Reset Defaults** in Settings) to start over.
 
 ## Limitations
 
 - The event tap remaps mouse buttons globally; there is no per-device filter.
+- Keystroke attribution is tied to the CITLLA receiver (VID `0x1EA7`,
+  PID `0x0066`). A control that sends a keystroke from a different device would
+  be treated as normal keyboard input.
 - Left and right click can be remapped, but doing so can make normal clicking
   awkward. The defaults leave them alone.
 - Horizontal scroll/tilt (`AC Pan`) is not remapped in this version.
@@ -221,8 +250,9 @@ Delete that file (or use **Reset Defaults** in Settings) to start over.
   are not software-remappable.
 - The app is not sandboxed. Event taps and HID access are not compatible with
   the App Sandbox.
-- A local build is signed ad hoc. If you rebuild or move the app, macOS may ask
-  for Accessibility permission again.
+- A local build is signed ad hoc with an identifier-based designated
+  requirement, so rebuilds keep their grants. Moving the app to a different path
+  still counts as a different app to TCC.
 
 ## Troubleshooting
 
@@ -230,12 +260,20 @@ Delete that file (or use **Reset Defaults** in Settings) to start over.
 Open Settings → Permissions. Accessibility must say *Granted* and the event tap
 must say *active*. Press **Restart Event Tap**.
 
+**Middle click does nothing, or the thumb buttons do nothing.**
+Middle click needs Accessibility, and the thumb buttons need Input Monitoring as
+well, because this mouse sends them as `⌃←` / `⌃→` keystrokes. Both cards in
+Settings → Permissions must say *Granted*. Builds made before the stable ad hoc
+requirement was added pinned the binary, so a grant from one of those builds is
+stale; remove Citlla E510 from both privacy lists and add it again once.
+
 **The app does not appear in Accessibility.**
 Drag `CitllaE510.app` from Finder into the Accessibility list, or use the `+`
 button and select it from DerivedData.
 
 **A permission grant seems stale after rebuilding.**
-Reset it and grant it again:
+Builds from `Scripts/build.sh` keep their grants. For an older or differently
+signed copy, reset it and grant it again:
 
 ```sh
 tccutil reset Accessibility com.ericng.citllae510

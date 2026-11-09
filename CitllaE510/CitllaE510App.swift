@@ -10,14 +10,22 @@ final class AppModel {
 
     let config: ConfigStore
     let eventTap: EventTapService
+    let tagger: MouseKeyTagger
     let loginItem: LoginItemManager
 
     private init() {
         let store = ConfigStore()
+        let tagger = MouseKeyTagger()
         config = store
-        eventTap = EventTapService(config: store)
+        self.tagger = tagger
+        eventTap = EventTapService(config: store, tagger: tagger)
         loginItem = LoginItemManager.shared
-        WindowManager.shared.configure(config: store, eventTap: eventTap, loginItem: loginItem)
+        WindowManager.shared.configure(
+            config: store,
+            eventTap: eventTap,
+            tagger: tagger,
+            loginItem: loginItem
+        )
     }
 }
 
@@ -31,6 +39,7 @@ struct CitllaE510App: App {
 
     init() {
         StatusProbe.runIfRequested()
+        _ = ActionProbe.runIfRequested()
     }
 
     var body: some Scene {

@@ -43,22 +43,13 @@ enum ActionExecutor {
         case .forward:
             postKey(30, flags: .maskCommand)              // ⌘]
         case .missionControl:
-            postKey(126, flags: .maskControl)             // ⌃↑
+            DockControl.sendNotification("com.apple.expose.awake")
         case .appExpose:
-            postKey(125, flags: .maskControl)             // ⌃↓
+            DockControl.showAppExpose()
         case .showDesktop:
-            postKey(103, flags: [])                       // F11
+            DockControl.sendNotification("com.apple.showdesktop.awake")
         case .launchpad:
-            // macOS 26+ replaced Launchpad.app with Apps.app; support both.
-            let launchpad = "/System/Applications/Launchpad.app"
-            let apps = "/System/Applications/Apps.app"
-            if FileManager.default.fileExists(atPath: launchpad) {
-                openApp(at: launchpad)
-            } else if FileManager.default.fileExists(atPath: apps) {
-                openApp(at: apps)
-            } else {
-                postKey(118, flags: [])                   // F4
-            }
+            DockControl.sendNotification("com.apple.launchpad.toggle")
         case .spotlight:
             postKey(49, flags: .maskCommand)              // ⌘Space
         case .screenshot:
@@ -84,14 +75,46 @@ enum ActionExecutor {
 
     // MARK: - Synthetic events
 
+    /// Posts a keystroke, pressing the modifier keys for real around it.
+    ///
+    /// Setting `CGEventFlags` on a key event is enough for an application's own
+    /// shortcuts, but system-wide shortcuts - Mission Control (⌃↑), App Exposé
+    /// (⌃↓), Spotlight, screenshots - are matched against the modifier keys that
+    /// are actually down. Posting the modifiers themselves is what makes those
+    /// work.
     private static func postKey(_ keyCode: UInt16, flags: CGEventFlags) {
-        guard let source = CGEventSource(stateID: .hidSystemState) else { return }
-        for isDown in [true, false] {
-            guard let event = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: isDown) else { continue }
-            event.flags = flags
-            event.setIntegerValueField(.eventSourceUserData, value: EventMarker.value)
-            event.post(tap: .cghidEventTap)
+        let modifiers: [(flag: CGEventFlags, keyCode: CGKeyCode)] = [
+            (.maskControl, 59),     // left Control
+            (.maskAlternate, 58),   // left Option
+            (.maskShift, 56),       // left Shift
+            (.maskCommand, 55)      // left Command
+        ]
+
+        var held: CGEventFlags = []
+        var pressed: [(flag: CGEventFlags, keyCode: CGKeyCode)] = []
+        for modifier in modifiers where flags.contains(modifier.flag) {
+            held.insert(modifier.flag)
+            postKeyEvent(modifier.keyCode, flags: held, isDown: true)
+            pressed.append(modifier)
         }
+
+        postKeyEvent(keyCode, flags: held, isDown: true)
+        postKeyEvent(keyCode, flags: held, isDown: false)
+
+        for modifier in pressed.reversed() {
+            held.remove(modifier.flag)
+            postKeyEvent(modifier.keyCode, flags: held, isDown: false)
+        }
+    }
+
+    private static func postKeyEvent(_ keyCode: CGKeyCode, flags: CGEventFlags, isDown: Bool) {
+        guard let source = CGEventSource(stateID: .hidSystemState),
+              let event = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: isDown) else {
+            return
+        }
+        event.flags = flags
+        event.setIntegerValueField(.eventSourceUserData, value: EventMarker.value)
+        event.post(tap: .cghidEventTap)
     }
 
     private static func postMediaKey(_ key: Int32) {

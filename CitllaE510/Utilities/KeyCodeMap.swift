@@ -7,6 +7,26 @@ enum EventMarker {
     static let value: Int64 = 0x4349_544C_4C41_3531 // "CITLLA51"
 }
 
+/// `NX_SYSDEFINED`. `CGEventType` has no Swift name for it.
+enum SystemDefinedEvent {
+    static let type = CGEventType(rawValue: 14)!
+}
+
+enum NXKeyState {
+    /// The value in bits 8-15 of `NSEvent.data1` for a media key press.
+    static let down: Int = 0xA
+    /// ...and for its release.
+    static let up: Int = 0xB
+
+    static func keyType(from data1: Int) -> Int32 {
+        Int32((data1 >> 16) & 0xFFFF)
+    }
+
+    static func isDown(_ data1: Int) -> Bool {
+        ((data1 >> 8) & 0xFF) == down
+    }
+}
+
 enum KeyCodeMap {
     /// US-layout virtual key names. Good enough for displaying shortcuts; the
     /// stored value is the virtual key code, so behavior is layout-correct at

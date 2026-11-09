@@ -1,6 +1,6 @@
 # Progress
 
-Last updated: 2026-11-07 (late)
+Last updated: 2026-11-08
 
 Where the Citlla E510 app stands, what was learned about the mouse, and what is
 next. `README.md` is the user-facing documentation; this file is the working
@@ -8,33 +8,82 @@ log.
 
 ## State
 
-- Release build installed at `/Applications/CitllaE510.app`, universal
-  (`x86_64 arm64`), ad hoc signed. `Scripts/build.sh` runs tests, builds,
+- Debug and Release builds are healthy; `Scripts/build.sh` runs tests, builds,
   verifies the bundle, installs and launches.
-- 26 unit tests pass (config round-trip, action model, button naming, key codes,
-  and the diagram's nine callouts).
+- 38 unit tests pass (config round-trip, action model, button naming, key codes,
+  shortcut bindings, media-key decoding, and the diagram's nine callouts).
 - Menu bar app (`LSUIElement`): menu bar icon, Settings (Mouse / Buttons /
   Permissions / About), Diagnostics, Button Tester.
 - Current bindings in `~/Library/Application Support/CitllaE510/config.json`:
-  buttons 1–3 pass through, 4 → Show Desktop, 5 → Forward, 6–8 unbound.
+  buttons 1–2 pass through, 3 → Show Desktop, 4 → Back, 5 → Forward, 6–8
+  unbound. Buttons 4 and 5 are never sent by this mouse, so the real thumb
+  buttons use the shortcut bindings instead (`⌃←` → Back, `⌃→` → Forward).
+- Three fixes landed, all confirmed live on 2026-11-08:
+  1. **Mission Control / Show Desktop / Launchpad / App Exposé:** posting the
+     matching keystrokes never works — see "System actions" below. They go
+     through `DockControl` now.
+  2. **Thumb buttons:** the receiver's keyboard interface sends `⌃←` / `⌃→`,
+     not mouse buttons 4/5. `MouseKeyTagger` listens to the mouse's own HID
+     reports on a background run loop so the tap only remaps keystrokes the
+     mouse sent.
+  3. **Grants:** Accessibility and Input Monitoring are held by the ad hoc
+     signed build and survive rebuilds.
 
-**One manual step is outstanding:** the last reinstall invalidated the ad hoc
-code signature, so Accessibility has to be re-granted once
-(System Settings → Privacy & Security → Accessibility → Citlla E510). Until then
-the menu shows *Accessibility permission is required* and both the remapper and
-the tester are inert.
+Confirmed by the tester: middle click shows and restores the desktop, and the
+two thumb buttons go back/forward in Chrome.
+
+Builds are re-signed ad hoc with `designated => identifier
+"com.ericng.citllae510"` instead of the binary's cdhash, so later rebuilds keep
+their TCC grants. `MouseKeyTagger` also waits for Input Monitoring before
+touching the HID device (it used to retry every second and log a TCC denial each
+time), and Settings → Permissions starts the event tap by itself when
+Accessibility appears.
 
 ## What the app does now
 
 | Area | Notes |
 | --- | --- |
 | Remapping | `CGEventTap` at the session level, head insert, suppresses the original button pair and runs the chosen action. Events it posts itself are stamped so they are not remapped twice. |
-| Actions | macOS actions (Mission Control, Show Desktop, Launchpad, screenshot…), any keyboard shortcut, mouse clicks, open app / URL / shell command. |
-| Settings → Mouse | The two renders cut from the manufacturer's diagram, next to the nine numbered callouts with the diagram's own wording. Clicking a row opens the action editor for the button behind it. Fixed 860×720 window. |
-| Test Buttons… | Listen-only tap at head insert: highlights and counts each diagram control as it is pressed, shows a raw log of mouse / scroll / keyboard / system-defined events, and *Copy Report* for pasting into a bug report. Controls the firmware sends that are not on the diagram are called out separately. |
+| Mouse keystrokes | `MouseKeyTagger` opens the receiver (VID `0x1EA7`, PID `0x66`) read-only with `IOHIDManager` on a background run loop. Key-downs are recorded for 120 ms; the tap only acts when the mouse just sent that key. Modifier key-downs are matched before a sample is claimed, so `⌃`/`⌘` down does not steal the tag for the key after it. |
+| Actions | macOS actions (Mission Control, Show Desktop, Launchpad, screenshot…), any keyboard shortcut, mouse clicks, open app / URL / shell command. Mission Control, App Exposé, Show Desktop and Launchpad go through the Dock; everything else is posted as events. |
+| Settings → Mouse | The two renders cut from the manufacturer's diagram, next to the nine numbered callouts with the diagram's own wording. Callout 8 shows both thumb-button actions. Clicking a row opens the action editor. Fixed 860×720 window. |
+| Settings → Buttons | Toggle, a **Mouse Keystrokes** section (`⌃←` / `⌃→`, editable), and the eight reported mouse buttons. |
+| Test Buttons… | Listen-only tap at head insert: highlights and counts each diagram control as it is pressed, shows a raw log, and *Copy Report*. Mouse-sent keystrokes are labelled **Mouse key** and marked bindable; keyboard events are labelled separately. |
 | Diagnostics | Raw HID reports from the receiver (needs Input Monitoring). |
 | `--status` | Prints accessibility / input monitoring / tap state and exits. |
 | `--snapshot` | Renders one of the app's own windows to PNG — the only way to check layout on this machine, which does not grant screen recording. |
+
+## System actions
+
+Symbolic hotkeys — ⌃↑, ⌃↓, F11, F4, ⌘Space, ⌃⌘Q — are matched by the
+WindowServer against real HID events. Synthetic `CGEvent`s never trigger them,
+whatever the event source (`.hidSystemState`, `.combinedSessionState`,
+`.privateState`) or tap (`.cghidEventTap`, `.cgSessionEventTap`,
+`.cgAnnotatedSessionEventTap`), with or without the event marker. `⌘⇧3` works
+only because screenshots are handled by the screenshot service, not by a
+symbolic hotkey.
+
+So `DockControl` asks the Dock instead:
+
+| Action | Route |
+| --- | --- |
+| Mission Control | `CoreDockSendNotification("com.apple.expose.awake")` |
+| Show Desktop | `CoreDockSendNotification("com.apple.showdesktop.awake")` |
+| Launchpad / Apps | `CoreDockSendNotification("com.apple.launchpad.toggle")` |
+| App Exposé | `AXShowExpose` action on the frontmost app's Dock tile |
+
+`CoreDockSendNotification` is in ApplicationServices on macOS 26+;
+`CoreDock.framework` no longer exists. `com.apple.expose.front.awake` is still
+in the Dock's binary but does nothing, hence the accessibility route for App
+Exposé, which matches tiles on bundle URL first because two tiles can share a
+name. All four are toggles: a second press closes what the first opened. They
+also close if another app activates while they are open, so they look like they
+"flash and disappear" when sent from a freshly launched probe — the running app
+does not activate, so it is fine.
+
+Still unmatched by any route: **Spotlight** (⌘Space) and **Lock Screen**
+(⌃⌘Q). Both are symbolic hotkeys and neither has a working Dock or private
+notification path found so far.
 
 ## What the diagram says about the mouse
 
@@ -51,12 +100,13 @@ were read by template matching against the badge 1–9 glyphs:
 | 5 | Side Wheel | horizontal scroll | arrives as a wheel tilt, not a button |
 | 6 | Devices Switch Button | switch paired device | factory profile sends `⌘Tab` |
 | 7 | Devices Indicators | 2.4G / BT1 / BT2 / DPI / low power | LEDs, not a button |
-| 8 | Forward / Back Buttons | the two thumb buttons | buttons 4 and 5 |
+| 8 | Forward / Back Buttons | the two thumb buttons | sends `⌃←` and `⌃→` (not buttons 4/5) |
 | 9 | Return to Desktop / Full Screen | bottom-right thumb button | factory profile sends `⌃⌘F` |
 
-Rows 6 and 9 are keyboard shortcuts, not mouse buttons, so the remapper cannot
-touch them yet (they also cannot be told apart from a real keyboard `⌘Tab`).
-Tilt is not handled at all.
+The receiver also sends one consumer key (`NX_KEYTYPE_SOUND_UP`, key type 0)
+from a control that is not yet matched to a diagram number. Rows 6 and 9 would
+now be distinguishable through `MouseKeyTagger` if this mouse sent them, but
+they were not observed in the HID capture. Tilt is not handled at all.
 
 The renders in `Assets.xcassets/Mouse/` are produced by
 `Scripts/extract-assets.swift`; it keys out the studio background, erodes away
@@ -65,37 +115,59 @@ back and writes 1x + 2x images. Re-run it if the diagram changes.
 
 ## Open threads
 
-1. **Learn what each physical control sends.** Open *Test Buttons…*, press every
-   control once, then *Copy Report*. Expected surprises: the side wheel may send
-   `NSEvent` tilt via `scrollWheel` (`deltaAxis2`) rather than a button, and the
-   bottom-right button may send a keyboard shortcut instead of button 6.
-2. **Extend `EventTapService` for whatever the report shows** — at minimum
-   horizontal scroll/tilt, so the side wheel can be bound.
-3. **Handle shortcut-sending buttons.** Either swallow the synthetic shortcut
-   when it is recognisably from the mouse (needs a way to tell the source
-   apart), or document that those two buttons must be remapped to "no function"
-   in the mouse's own software first.
-4. **Diagram hotspots.** The renders are currently artwork only; the numbered
+1. **Spotlight and Lock Screen.** Both are symbolic hotkeys, so nothing the app
+   posts reaches them (see "System actions"). Spotlight needs a private
+   entry point (`Spotlight.app` refuses to launch, `spotlight://` does nothing,
+   `com.apple.expose.front.awake`-style notifications do not exist for it).
+   Lock Screen could fall back to `pmset displaysleepnow` plus "require
+   password immediately", or to whichever `SAC*` lock call still exists.
+2. **Horizontal scroll/tilt.** The side wheel still arrives as a scroll event
+   and is not remapped. `EventTapService` would need to swallow `scrollWheel`
+   deltas for the tilt axis.
+3. **Unidentified consumer key.** The receiver sends `NX_KEYTYPE_SOUND_UP` from
+   a control that is not one of the nine diagram buttons. Consumer bindings are
+   implemented (`ShortcutBinding.source == .consumer`), but nothing in the UI
+   creates one yet; a "learn from tester" button would make it assignable.
+4. **Do buttons 4/5 still need rows?** The defaults and the user config still
+   list them, but this mouse never sends them. Removing or hiding them would
+   make the Buttons tab shorter and less confusing.
+5. **Diagram hotspots.** The renders are currently artwork only; the numbered
    legend is the interactive surface. Overlaying hit targets on the renders
    would need the badge positions mapped to the render crops (coordinates are
    recorded in the git history of this session), and it was skipped because a
    wrong hotspot is worse than none.
-5. **Signing.** No codesigning identity is present on this machine, so every
-   rebuild requires `tccutil reset Accessibility com.ericng.citllae510` and a
-   fresh grant. Creating a self-signed certificate in the login keychain and
-   using `Scripts/build.sh --sign` would end that cycle.
+6. **Signing.** No trusted codesigning identity is present on this machine.
+   `Scripts/build.sh` now re-signs ad hoc with an identifier-based designated
+   requirement, which should keep TCC grants across rebuilds without a
+   certificate. An untrusted "Citlla E510 Self Signed" certificate is still in
+   the login keychain from the earlier attempt and can be deleted.
 
 ## Verification notes
 
 - The app's windows cannot be inspected through AX: for a `MenuBarExtra` app,
   `AXWindows` returns proxy elements that resolve back to the application
-  element. `--snapshot` plus OCR (`Vision`) and pixel analysis of the PNG works
-  instead, and was used to confirm both windows fit their content.
+  element. `--snapshot` plus OCR (`Vision`) of the PNG works instead. Composite
+  the PNG onto white first: tabs without an opaque list background come out
+  transparent.
 - The tester tap is at head insert so it still sees buttons the remapper
-  swallows a moment later. It is listen-only, so it cannot suppress anything.
+  swallows a moment later. It is listen-only and uses `peekKeyPress()`, so it
+  cannot suppress anything or steal an attribution sample from the remapper.
+- The HID listener must run on a **background** run loop: reports have to be
+  recorded before the main-thread `CGEvent` tap callback runs for the matching
+  key event.
+- `CGEventSourceStateID` is private `-1`, combined session `0`, HID system `1`.
+  Real HID events are state `1`; the older tester labels were inverted.
 - `AXIsProcessTrusted()` reports the truth for the `open`-launched app; running
   the binary from a terminal borrows the terminal's TCC identity, so `--status`
   from a shell can say *trusted* while the app itself is not.
+- Probes must be launched with `open -n -g -a … --args …`: `-n` forces a second
+  instance so the arguments are honoured, and `-g` keeps it from activating.
+  Without `-g` the activation closes whatever Dock expose mode the probe just
+  opened, which reads as "the notification does not work".
+- Dock state is visible in `log stream --predicate 'process == "Dock"'`:
+  `[com.apple.dock:missioncontrol] Changing from mode …` and
+  `Toggle Expose Mode: …`. Launchpad logs
+  `[com.apple.dock:spotlight] Sending .launchAppsBrowsing` instead.
 
 ## Session log
 
@@ -105,3 +177,7 @@ back and writes 1x + 2x images. Re-run it if the diagram changes.
 - `95fbbce` diagram-based mouse map, button tester, asset extraction, snapshots
 - `0161699` tap recovery when Accessibility is granted after launch
 - `307e340` tester tap at head insert
+- today: HID attribution for mouse keystrokes, real modifier events for system
+  shortcuts, shortcut bindings + editor, tester source fixes
+- today: system actions moved to the Dock (`DockControl`) after finding that
+  synthetic events never trigger symbolic hotkeys; App Exposé via `AXShowExpose`

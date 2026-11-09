@@ -8,8 +8,19 @@ enum TesterVerdict: Equatable {
     case bindable(button: Int, action: String?)
     /// Arrives as a real mouse button but has no binding.
     case unbound(button: Int)
-    /// Recognised, but not a mouse button, so the current tap cannot touch it.
+    /// The mouse sent a keystroke or media key that the remapper can bind.
+    case bindableKey(trigger: String, action: String?)
+    /// The mouse sent a keystroke or media key with no binding yet.
+    case unboundKey(trigger: String)
+    /// Recognised, but the remapper does not handle it.
     case other(String)
+
+    var isBindable: Bool {
+        switch self {
+        case .bindable, .bindableKey: true
+        case .unbound, .unboundKey, .other: false
+        }
+    }
 }
 
 struct TesterEvent: Identifiable {
@@ -53,16 +64,15 @@ final class ButtonTester: ObservableObject {
     @Published private(set) var errorMessage: String?
 
     private let config: ConfigStore
+    private let tagger: MouseKeyTagger
     private var tap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private var lastScrollRecord = Date.distantPast
     private static let maxEvents = 120
 
-    /// `NX_SYSDEFINED`. `CGEventType` has no Swift name for it.
-    static let systemDefined = CGEventType(rawValue: 14)!
-
-    init(config: ConfigStore) {
+    init(config: ConfigStore, tagger: MouseKeyTagger) {
         self.config = config
+        self.tagger = tagger
     }
 
     func start() {
@@ -72,13 +82,21 @@ final class ButtonTester: ObservableObject {
             return
         }
 
+        // The tester shares the remapper's listener. Starting it here as well
+        // means the tester still explains mouse-sent keys when the event tap has
+        // not been started yet.
+        if !PermissionManager.hasInputMonitoring {
+            PermissionManager.requestInputMonitoring()
+        }
+        tagger.start()
+
         let types: [CGEventType] = [
             .leftMouseDown, .leftMouseUp,
             .rightMouseDown, .rightMouseUp,
             .otherMouseDown, .otherMouseUp,
             .scrollWheel,
             .keyDown,
-            Self.systemDefined
+            SystemDefinedEvent.type
         ]
         let mask = types.reduce(CGEventMask(0)) { partial, type in
             partial | (CGEventMask(1) << CGEventMask(type.rawValue))
@@ -132,6 +150,11 @@ final class ButtonTester: ObservableObject {
     /// A plain-text summary that can be pasted into a bug report.
     func report() -> String {
         var lines = ["Citlla E510 button tester", "date: \(ISO8601DateFormatter().string(from: Date()))", ""]
+        lines.append("HID listener: \(tagger.isRunning ? "running" : "not running") · \(tagger.deviceCount) device(s)")
+        if let error = tagger.openError {
+            lines.append("HID open error: \(error)")
+        }
+        lines.append("")
         lines.append("Diagram controls:")
         for control in MouseMap.controls {
             if let hit = hits[control.number] {
@@ -178,7 +201,7 @@ final class ButtonTester: ObservableObject {
             recordScroll(event)
         case .keyDown:
             recordKey(event)
-        case Self.systemDefined:
+        case SystemDefinedEvent.type:
             recordSystemDefined(event)
         default:
             break
@@ -196,7 +219,7 @@ final class ButtonTester: ObservableObject {
             action = summary.map { "remaps to \($0)" } ?? "bound"
         case .unbound:
             action = "no binding, passes through"
-        case .other:
+        case .bindableKey, .unboundKey, .other:
             action = ""
         }
 
@@ -252,42 +275,81 @@ final class ButtonTester: ObservableObject {
 
     private func recordKey(_ event: CGEvent) {
         let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
-        let flags = event.flags
-        var modifierBits: UInt = 0
-        if flags.contains(.maskControl) { modifierBits |= NSEvent.ModifierFlags.control.rawValue }
-        if flags.contains(.maskAlternate) { modifierBits |= NSEvent.ModifierFlags.option.rawValue }
-        if flags.contains(.maskShift) { modifierBits |= NSEvent.ModifierFlags.shift.rawValue }
-        if flags.contains(.maskCommand) { modifierBits |= NSEvent.ModifierFlags.command.rawValue }
+        let modifiers = ShortcutBinding.masked(event.flags)
+        let shortcut = KeyCodeMap.describe(keyCode: keyCode, modifiers: modifiers)
 
-        let shortcut = KeyCodeMap.describe(keyCode: keyCode, modifiers: modifierBits)
+        // The tester's tap is ahead of the remapper's, so peek rather than claim:
+        // the remapper still needs this sample to do its own attribution.
+        let sample = tagger.peekKeyPress()
+
+        let category: String
+        let detail: String
+        let verdict: TesterVerdict
+        if let sample {
+            category = "Mouse key"
+            if let (_, action) = config.config.action(forKeyboardKeyCode: keyCode, modifiers: modifiers),
+               action.isBound {
+                verdict = .bindableKey(trigger: shortcut, action: action.summary)
+                detail = "key code \(keyCode), remaps to \(action.summary) · \(sample.summary)"
+            } else {
+                verdict = .unboundKey(trigger: shortcut)
+                detail = "key code \(keyCode), no binding yet · \(sample.summary)"
+            }
+        } else {
+            category = "Keyboard"
+            detail = "key code \(keyCode) from \(eventSourceName(event))"
+            verdict = .other("This came from the keyboard. Only keystrokes the mouse itself sends are remapped.")
+        }
+
         record(
-            category: "Keyboard",
+            category: category,
             summary: shortcut,
-            detail: "key code \(keyCode) from \(eventSourceName(event))",
-            controlKey: "key-\(keyCode)-\(modifierBits)",
+            detail: detail,
+            controlKey: "key-\(keyCode)-\(modifiers)",
             label: shortcut,
-            verdict: .other("This arrived as a keyboard shortcut, not a mouse button. Use the mouse's own software to switch it out of shortcut mode, or bind the shortcut itself."),
-            control: MouseMap.control(forKeyCode: keyCode, modifiers: modifierBits)?.number,
+            verdict: verdict,
+            control: sample == nil ? nil : MouseMap.control(forKeyCode: keyCode, modifiers: modifiers)?.number,
             // A shortcut from the physical keyboard is not a mouse control, so
             // it must not be reported as "not on the diagram".
-            flagsUnmapped: false
+            flagsUnmapped: sample != nil
         )
     }
 
     private func recordSystemDefined(_ event: CGEvent) {
         guard let nsEvent = NSEvent(cgEvent: event) else { return }
-        let keyType = Int32((nsEvent.data1 >> 16) & 0xFFFF)
-        let isDown = ((nsEvent.data1 >> 8) & 0x1) == 0x1
-        let name = Self.mediaKeyNames[keyType] ?? "NX key \(keyType)"
+        let data1 = Int(nsEvent.data1)
+        let keyType = NXKeyState.keyType(from: data1)
+        let isDown = NXKeyState.isDown(data1)
+        let name = ShortcutBinding.consumerName(keyType)
+        let sample = tagger.peekKeyPress()
+
+        let category: String
+        let detail: String
+        let verdict: TesterVerdict
+        if let sample {
+            category = "Mouse key"
+            if let (_, action) = config.config.action(forConsumerKey: keyType), action.isBound {
+                verdict = .bindableKey(trigger: name, action: action.summary)
+                detail = "media key \(keyType), remaps to \(action.summary) · \(sample.summary)"
+            } else {
+                verdict = .unboundKey(trigger: name)
+                detail = "media key \(keyType), no binding yet · \(sample.summary)"
+            }
+        } else {
+            category = "System"
+            detail = "system-defined key type \(keyType)"
+            verdict = .other("A media/system key, not a mouse button.")
+        }
 
         record(
-            category: "System",
+            category: category,
             summary: "\(name) \(isDown ? "down" : "up")",
-            detail: "system-defined key type \(keyType)",
+            detail: detail,
             controlKey: "sys-\(keyType)",
             label: name,
-            verdict: .other("A media/system key, not a mouse button. The current tap cannot bind it."),
-            flagsUnmapped: false
+            verdict: verdict,
+            counts: isDown,
+            flagsUnmapped: sample != nil && isDown
         )
     }
 
@@ -299,11 +361,13 @@ final class ButtonTester: ObservableObject {
     }
 
     private func eventSourceName(_ event: CGEvent) -> String {
-        guard let source = event.getIntegerValueField(.eventSourceStateID) as Int64? else { return "unknown" }
-        switch source {
-        case 0: return "HID system"
-        case 1: return "private"
-        default: return "state \(source)"
+        // CGEventSourceStateID: private -1, combined session 0, HID system 1.
+        let state = event.getIntegerValueField(.eventSourceStateID)
+        switch state {
+        case -1: return "private"
+        case 0: return "combined session"
+        case 1: return "HID system"
+        default: return "state \(state)"
         }
     }
 
@@ -363,21 +427,6 @@ final class ButtonTester: ObservableObject {
             lastUnmapped = "\(category): \(summary)"
         }
     }
-
-    private static let mediaKeyNames: [Int32: String] = [
-        0: "Volume Up",
-        1: "Volume Down",
-        2: "Brightness Up",
-        3: "Brightness Down",
-        4: "Caps Lock",
-        6: "Power",
-        7: "Video Mirror",
-        16: "Play/Pause",
-        17: "Next Track",
-        18: "Previous Track",
-        19: "Fast Forward",
-        20: "Rewind"
-    ]
 }
 
 private let testerCallback: CGEventTapCallBack = { _, type, event, userInfo in
