@@ -64,7 +64,7 @@ to change that control's binding.
 | 6 | Devices Switch Button | switch paired device | sends `⌘Tab` in the factory profile |
 | 7 | Devices Indicators | 2.4G / BT1 / BT2 / DPI / low power LEDs | not a button |
 | 8 | Forward / Back Buttons | the two thumb buttons | sends `⌃←` and `⌃→` |
-| 9 | Return to Desktop / Full Screen | bottom-right thumb button | sends `⌃⌘F` in the factory profile; remappable like the rest |
+| 9 | Return to Desktop / Full Screen | bottom-right thumb button | sends `⌃⌘F` (confirmed); remappable like the rest |
 
 ## Button tester
 

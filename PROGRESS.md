@@ -102,16 +102,17 @@ were read by template matching against the badge 1–9 glyphs:
 | 6 | Devices Switch Button | switch paired device | factory profile sends `⌘Tab` |
 | 7 | Devices Indicators | 2.4G / BT1 / BT2 / DPI / low power | LEDs, not a button |
 | 8 | Forward / Back Buttons | the two thumb buttons | sends `⌃←` and `⌃→` (not buttons 4/5) |
-| 9 | Return to Desktop / Full Screen | bottom-right thumb button | factory profile sends `⌃⌘F` |
+| 9 | Return to Desktop / Full Screen | bottom-right thumb button | sends `⌃⌘F` (confirmed by HID trace) |
 
 The receiver also sends one consumer key (`NX_KEYTYPE_SOUND_UP`, key type 0)
 from a control that is not yet matched to a diagram number. The mouse interface
 in the HID descriptor declares Button usages 1–8 only (`hidutil list` shows two
 `2.4G Mouse` interfaces, primary usage 6 and 2), so callout 9 cannot be a mouse
-button: it has to arrive on the keyboard interface as `⌃⌘F`, like the thumb
-buttons' `⌃←` / `⌃→`. Callout 9 now has a default `ShortcutBinding` row so it can
-be remapped; it starts unbound, which leaves the factory full-screen toggle
-working. Row 6 (`⌘Tab`) has no binding row yet. Tilt is not handled at all.
+button. A live HID trace of pressing it confirmed the factory chord: usage
+`0xE3` (left ⌘), usage `0xE0` (left ⌃), then keyboard usage `9` (F) — i.e.
+`⌃⌘F`. Callout 9 therefore has a default `ShortcutBinding` row like the thumb
+buttons; it starts unbound, which leaves the factory full-screen toggle working.
+Row 6 (`⌘Tab`) has no binding row yet. Tilt is not handled at all.
 
 The renders in `Assets.xcassets/Mouse/` are produced by
 `Scripts/extract-assets.swift`; it keys out the studio background, erodes away
