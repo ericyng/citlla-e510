@@ -190,7 +190,7 @@ struct ButtonsSettingsView: View {
                 } header: {
                     Text("Mouse Keystrokes")
                 } footer: {
-                    Text("This mouse sends its thumb buttons as ⌃← and ⌃→ instead of mouse buttons. They are remapped here, and only when the mouse itself sent the key — your keyboard still works normally.")
+                    Text("This mouse sends its thumb buttons as ⌃← and ⌃→, and the ninth control as ⌃⌘F, instead of mouse buttons. They are remapped here, and only when the mouse itself sent the key — your keyboard still works normally.")
                 }
 
                 Section("Mouse Buttons") {

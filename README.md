@@ -14,15 +14,16 @@ button event with that action.
 
 The CITLLA PRO MAX E510 does not report its extra buttons as ordinary mouse
 buttons. Its receiver also presents a keyboard interface, and the two thumb
-buttons send `⌃←` and `⌃→` as real keystrokes. Citlla E510 watches the mouse's
-own HID reports so it can tell those keystrokes apart from the same shortcuts on
-your keyboard. Out of the box:
+buttons send `⌃←` and `⌃→` as real keystrokes; the ninth control sends `⌃⌘F`.
+Citlla E510 watches the mouse's own HID reports so it can tell those keystrokes
+apart from the same shortcuts on your keyboard. Out of the box:
 
 | Control | Default |
 | --- | --- |
 | Left, right and wheel click | Pass through |
 | Rear thumb button (sends `⌃←`) | Back (`⌘[`) |
 | Front thumb button (sends `⌃→`) | Forward (`⌘]`) |
+| Ninth control (sends `⌃⌘F`) | Pass through (keeps the factory full-screen toggle) |
 | Buttons 4–8 | Pass through (this mouse does not send them) |
 
 You can bind a control to:
@@ -63,7 +64,7 @@ to change that control's binding.
 | 6 | Devices Switch Button | switch paired device | sends `⌘Tab` in the factory profile |
 | 7 | Devices Indicators | 2.4G / BT1 / BT2 / DPI / low power LEDs | not a button |
 | 8 | Forward / Back Buttons | the two thumb buttons | sends `⌃←` and `⌃→` |
-| 9 | Return to Desktop / Full Screen | bottom-right thumb button | sends `⌃⌘F` in the factory profile |
+| 9 | Return to Desktop / Full Screen | bottom-right thumb button | sends `⌃⌘F` in the factory profile; remappable like the rest |
 
 ## Button tester
 
@@ -202,10 +203,11 @@ binding, suppresses the original down/up pair, and runs the action. Events the
 app posts itself are stamped with a marker so the tap never remaps them twice.
 
 The thumb buttons are not mouse buttons: they arrive as real key events on the
-receiver's keyboard interface. A read-only `IOHIDManager` listener on a
-background thread records each key the mouse sends, and the tap only acts on
-`⌃←` / `⌃→` when that listener saw the mouse send the key within the last
-120 ms. The same shortcuts on your keyboard still behave normally.
+receiver's keyboard interface. So does the ninth control, as `⌃⌘F`. A read-only
+`IOHIDManager` listener on a background thread records each key the mouse sends,
+and the tap only acts on a mapped trigger (`⌃←`, `⌃→`, `⌃⌘F`) when that listener
+saw the mouse send the key within the last 120 ms. The same shortcuts on your
+keyboard still behave normally.
 
 For Mission Control, App Exposé, Show Desktop and Launchpad the app asks the
 Dock to do it (`CoreDockSendNotification`, and the `AXShowExpose` accessibility

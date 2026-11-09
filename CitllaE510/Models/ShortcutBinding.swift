@@ -9,6 +9,7 @@ import Foundation
 /// real key presses:
 ///
 ///   - the two thumb buttons (diagram callout 8) send `⌃←` and `⌃→`
+///   - the ninth control (diagram callout 9) sends `⌃⌘F`
 ///   - another control sends a consumer key (`NX_KEYTYPE_SOUND_UP`)
 ///
 /// A session event tap cannot tell which device a key came from, so the app only
@@ -80,7 +81,11 @@ struct ShortcutBinding: Codable, Identifiable, Equatable, Sendable {
 
     // MARK: - Defaults
 
-    /// The two thumb buttons, as this mouse actually sends them.
+    /// The extra controls this mouse sends as keystrokes.
+    ///
+    /// The ninth control starts unbound so the factory `⌃⌘F` keeps working
+    /// until the user picks an action for it; the row still appears in Settings
+    /// and the tester so it can be remapped like any other control.
     static let defaults: [ShortcutBinding] = [
         ShortcutBinding(
             keyCode: 123,                                   // ⌃← — rear thumb button
@@ -91,6 +96,12 @@ struct ShortcutBinding: Codable, Identifiable, Equatable, Sendable {
             keyCode: 124,                                   // ⌃→ — front thumb button
             modifiers: NSEvent.ModifierFlags.control.rawValue,
             action: MouseAction(kind: .system, system: .forward)
+        ),
+        ShortcutBinding(
+            keyCode: 3,                                     // ⌃⌘F — callout 9
+            modifiers: NSEvent.ModifierFlags.control.rawValue
+                | NSEvent.ModifierFlags.command.rawValue,
+            action: .none
         )
     ]
 

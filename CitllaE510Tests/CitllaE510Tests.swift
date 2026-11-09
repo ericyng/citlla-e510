@@ -51,6 +51,25 @@ final class AppConfigTests: XCTestCase {
         XCTAssertEqual(config.shortcutBindings, ShortcutBinding.defaults)
     }
 
+    func testDecodingOlderConfigAddsMissingShortcutDefaults() throws {
+        // A config written before the ninth control was mapped only has the two
+        // thumb buttons; loading it must add the ⌃⌘F row without touching them.
+        let control = NSEvent.ModifierFlags.control.rawValue
+        let thumb = ShortcutBinding(
+            keyCode: 123,
+            modifiers: control,
+            action: MouseAction(kind: .system, system: .missionControl)
+        )
+        let json = try JSONEncoder().encode(["shortcutBindings": [thumb]])
+        let config = try JSONDecoder().decode(AppConfig.self, from: json)
+
+        XCTAssertEqual(config.shortcut(id: thumb.id)?.action.system, .missionControl)
+        XCTAssertEqual(config.shortcutBindings.count, ShortcutBinding.defaults.count)
+
+        let fullScreen = NSEvent.ModifierFlags([.control, .command]).rawValue
+        XCTAssertNotNil(config.action(forKeyboardKeyCode: 3, modifiers: fullScreen))
+    }
+
     func testCodableRoundTrip() throws {
         var config = AppConfig()
         config.enabled = false
@@ -68,7 +87,7 @@ final class AppConfigTests: XCTestCase {
         let config = AppConfig()
         let control = NSEvent.ModifierFlags.control.rawValue
 
-        XCTAssertEqual(config.shortcutBindings.count, 2)
+        XCTAssertEqual(config.shortcutBindings.count, 3)
         XCTAssertEqual(
             config.action(forKeyboardKeyCode: 123, modifiers: control)?.1,
             MouseAction(kind: .system, system: .back)
@@ -78,6 +97,17 @@ final class AppConfigTests: XCTestCase {
             MouseAction(kind: .system, system: .forward)
         )
         XCTAssertNil(config.action(forKeyboardKeyCode: 123, modifiers: 0))
+    }
+
+    func testNinthControlIsListedButLeftUnbound() {
+        let config = AppConfig()
+        let fullScreen = NSEvent.ModifierFlags([.control, .command]).rawValue
+
+        let binding = config.action(forKeyboardKeyCode: 3, modifiers: fullScreen)?.0
+
+        XCTAssertEqual(binding?.name, "⌃⌘F")
+        XCTAssertFalse(binding?.action.isBound ?? true, "the factory shortcut must keep working until the user picks an action")
+        XCTAssertEqual(MouseMap.control(forShortcut: binding!)?.number, 9)
     }
 
     func testCapsLockDoesNotDefeatShortcutMatching() {
@@ -97,7 +127,7 @@ final class AppConfigTests: XCTestCase {
         config.setAction(MouseAction(kind: .system, system: .missionControl), forShortcut: id)
 
         XCTAssertEqual(config.shortcut(id: id)?.action.system, .missionControl)
-        XCTAssertEqual(config.shortcutBindings.count, 2, "existing shortcuts should be updated, not duplicated")
+        XCTAssertEqual(config.shortcutBindings.count, 3, "existing shortcuts should be updated, not duplicated")
     }
 
     func testLearnKeyboardShortcutAddsOnce() {
@@ -108,7 +138,7 @@ final class AppConfigTests: XCTestCase {
         let second = config.learnKeyboardShortcut(keyCode: 48, modifiers: command)
 
         XCTAssertEqual(first, second)
-        XCTAssertEqual(config.shortcutBindings.count, 3)
+        XCTAssertEqual(config.shortcutBindings.count, 4)
         XCTAssertFalse(config.shortcut(id: first)?.action.isBound ?? true)
     }
 
@@ -120,7 +150,7 @@ final class AppConfigTests: XCTestCase {
 
         XCTAssertEqual(id, again)
         XCTAssertEqual(config.shortcut(id: id)?.source, .consumer)
-        XCTAssertEqual(config.shortcutBindings.count, 3)
+        XCTAssertEqual(config.shortcutBindings.count, 4)
     }
 
     func testActionForConsumerKey() {

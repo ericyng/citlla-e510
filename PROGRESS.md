@@ -10,7 +10,7 @@ log.
 
 - Debug and Release builds are healthy; `Scripts/build.sh` runs tests, builds,
   verifies the bundle, installs and launches.
-- 38 unit tests pass (config round-trip, action model, button naming, key codes,
+- 42 unit tests pass (config round-trip, action model, button naming, key codes,
   shortcut bindings, media-key decoding, and the diagram's nine callouts).
 - Menu bar app (`LSUIElement`): menu bar icon, Settings (Mouse / Buttons /
   Permissions / About), Diagnostics, Button Tester.
@@ -18,6 +18,7 @@ log.
   buttons 1–2 pass through, 3 → Show Desktop, 4 → Back, 5 → Forward, 6–8
   unbound. Buttons 4 and 5 are never sent by this mouse, so the real thumb
   buttons use the shortcut bindings instead (`⌃←` → Back, `⌃→` → Forward).
+  Callout 9 is a shortcut binding too (`⌃⌘F`) and starts unbound.
 - Three fixes landed, all confirmed live on 2026-11-08:
   1. **Mission Control / Show Desktop / Launchpad / App Exposé:** posting the
      matching keystrokes never works — see "System actions" below. They go
@@ -47,7 +48,7 @@ Accessibility appears.
 | Mouse keystrokes | `MouseKeyTagger` opens the receiver (VID `0x1EA7`, PID `0x66`) read-only with `IOHIDManager` on a background run loop. Key-downs are recorded for 120 ms; the tap only acts when the mouse just sent that key. Modifier key-downs are matched before a sample is claimed, so `⌃`/`⌘` down does not steal the tag for the key after it. |
 | Actions | macOS actions (Mission Control, Show Desktop, Launchpad, screenshot…), any keyboard shortcut, mouse clicks, open app / URL / shell command. Mission Control, App Exposé, Show Desktop and Launchpad go through the Dock; everything else is posted as events. |
 | Settings → Mouse | The two renders cut from the manufacturer's diagram, next to the nine numbered callouts with the diagram's own wording. Callout 8 shows both thumb-button actions. Clicking a row opens the action editor. Fixed 860×720 window. |
-| Settings → Buttons | Toggle, a **Mouse Keystrokes** section (`⌃←` / `⌃→`, editable), and the eight reported mouse buttons. |
+| Settings → Buttons | Toggle, a **Mouse Keystrokes** section (`⌃←` / `⌃→` / `⌃⌘F`, all editable), and the eight reported mouse buttons. |
 | Test Buttons… | Listen-only tap at head insert: highlights and counts each diagram control as it is pressed, shows a raw log, and *Copy Report*. Mouse-sent keystrokes are labelled **Mouse key** and marked bindable; keyboard events are labelled separately. |
 | Diagnostics | Raw HID reports from the receiver (needs Input Monitoring). |
 | `--status` | Prints accessibility / input monitoring / tap state and exits. |
@@ -104,9 +105,13 @@ were read by template matching against the badge 1–9 glyphs:
 | 9 | Return to Desktop / Full Screen | bottom-right thumb button | factory profile sends `⌃⌘F` |
 
 The receiver also sends one consumer key (`NX_KEYTYPE_SOUND_UP`, key type 0)
-from a control that is not yet matched to a diagram number. Rows 6 and 9 would
-now be distinguishable through `MouseKeyTagger` if this mouse sent them, but
-they were not observed in the HID capture. Tilt is not handled at all.
+from a control that is not yet matched to a diagram number. The mouse interface
+in the HID descriptor declares Button usages 1–8 only (`hidutil list` shows two
+`2.4G Mouse` interfaces, primary usage 6 and 2), so callout 9 cannot be a mouse
+button: it has to arrive on the keyboard interface as `⌃⌘F`, like the thumb
+buttons' `⌃←` / `⌃→`. Callout 9 now has a default `ShortcutBinding` row so it can
+be remapped; it starts unbound, which leaves the factory full-screen toggle
+working. Row 6 (`⌘Tab`) has no binding row yet. Tilt is not handled at all.
 
 The renders in `Assets.xcassets/Mouse/` are produced by
 `Scripts/extract-assets.swift`; it keys out the studio background, erodes away

@@ -257,6 +257,7 @@ final class MouseKeyTagger: @unchecked Sendable {
         guard value != 0 else { return }
 
         let sample = MouseKeySample(date: Date(), usagePage: usagePage, usage: usage, value: value)
+        logger.debug("mouse HID page \(usagePage) usage \(usage) value \(value)")
         lock.lock()
         state.samples.append(sample)
         let cutoff = Date().addingTimeInterval(-2)

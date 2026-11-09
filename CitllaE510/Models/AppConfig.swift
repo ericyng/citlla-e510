@@ -78,7 +78,15 @@ struct AppConfig: Codable, Equatable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         enabled = try container.decodeIfPresent(Bool.self, forKey: .enabled) ?? true
         bindings = try container.decodeIfPresent([ButtonBinding].self, forKey: .bindings) ?? ButtonBinding.defaults
-        shortcutBindings = try container.decodeIfPresent([ShortcutBinding].self, forKey: .shortcutBindings)
+
+        // A config written before a control was mapped has no row for it, so
+        // merge in any defaults it is missing. Existing rows (and the actions
+        // the user chose for them) are left alone.
+        var shortcuts = try container.decodeIfPresent([ShortcutBinding].self, forKey: .shortcutBindings)
             ?? ShortcutBinding.defaults
+        for fallback in ShortcutBinding.defaults where !shortcuts.contains(where: { $0.id == fallback.id }) {
+            shortcuts.append(fallback)
+        }
+        shortcutBindings = shortcuts
     }
 }

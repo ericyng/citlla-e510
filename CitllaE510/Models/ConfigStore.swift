@@ -30,6 +30,10 @@ final class ConfigStore: ObservableObject {
            let decoded = try? JSONDecoder().decode(AppConfig.self, from: data) {
             hadStoredConfig = true
             config = decoded
+            // The decoder merges in defaults for controls this build maps but
+            // the file predates. Write the merged config back so the file and
+            // the running app agree.
+            save()
         } else {
             hadStoredConfig = false
             config = AppConfig()
