@@ -71,7 +71,7 @@ struct TesterView: View {
 
     private var content: some View {
         HStack(alignment: .top, spacing: 22) {
-            MouseRenderPair(height: 210, spacing: 10)
+            MouseRenderPair(height: 210, spacing: 10, highlighted: pulse)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {

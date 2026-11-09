@@ -35,10 +35,13 @@ struct Crop {
     let note: String
 }
 
-// Measured from the diagram's own callout badges: the top view sits under
-// badges 1/3/9, the side view under badges 5/6/7.
+// Measured from the diagram's own callout badges. The top view carries
+// callouts 1-4 and 9; the side view carries 5-8. Both rects are deliberately
+// generous: the trim step below cuts them back to the artwork, and a crop that
+// is too tight clips the mouse's outline (the old 485-wide top crop cut 30 px
+// off its right side).
 let crops = [
-    Crop(name: "MouseTop", rect: CGRect(x: 240, y: 575, width: 485, height: 740), note: "top view"),
+    Crop(name: "MouseTop", rect: CGRect(x: 225, y: 575, width: 540, height: 780), note: "top view"),
     Crop(name: "MouseSide", rect: CGRect(x: 930, y: 575, width: 390, height: 760), note: "side view"),
 ]
 

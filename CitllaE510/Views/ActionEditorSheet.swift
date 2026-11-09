@@ -95,7 +95,23 @@ struct ActionEditorSheet: View {
                 case .system:
                     Picker("System action", selection: $draft.system) {
                         ForEach(SystemAction.allCases) { action in
-                            Label(action.title, systemImage: action.symbolName).tag(action)
+                            Label(
+                                action.unavailableNote == nil
+                                    ? action.title
+                                    : "\(action.title) (not available)",
+                                systemImage: action.symbolName
+                            )
+                            .tag(action)
+                        }
+                    }
+                    if let note = draft.system.unavailableNote {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                            Text(note)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
 

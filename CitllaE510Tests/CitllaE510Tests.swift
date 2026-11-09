@@ -221,6 +221,29 @@ final class MouseMapTests: XCTestCase {
         XCTAssertEqual(MouseMap.remappableControls.count, 8)
     }
 
+    func testEveryBadgePointSitsOnItsRender() {
+        for control in MouseMap.controls {
+            let point = control.badgePoint
+            XCTAssertTrue(
+                (0.0...1.0).contains(point.x) && (0.0...1.0).contains(point.y),
+                "callout \(control.number) has its badge at \(point)"
+            )
+        }
+        // The nine callouts are split across the two renders: 1-4 and 9 on the
+        // top view, 5-8 on the side view.
+        let top = MouseMap.controls.filter { $0.render == .top }.map(\.number)
+        let side = MouseMap.controls.filter { $0.render == .side }.map(\.number)
+        XCTAssertEqual(top, [1, 2, 3, 4, 9])
+        XCTAssertEqual(side, [5, 6, 7, 8])
+    }
+
+    func testUnavailableSystemActionsAreDocumented() {
+        XCTAssertNotNil(SystemAction.spotlight.unavailableNote)
+        XCTAssertNotNil(SystemAction.lockScreen.unavailableNote)
+        XCTAssertNil(SystemAction.missionControl.unavailableNote)
+        XCTAssertNil(SystemAction.showDesktop.unavailableNote)
+    }
+
     func testButtonsResolveToCallouts() {
         XCTAssertEqual(MouseMap.control(forButton: 1)?.number, 1)
         XCTAssertEqual(MouseMap.control(forButton: 2)?.number, 2)

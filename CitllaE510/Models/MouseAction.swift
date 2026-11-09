@@ -100,6 +100,24 @@ enum SystemAction: String, CaseIterable, Codable, Identifiable {
         case .previousTrack: "backward.end"
         }
     }
+
+    /// Why a remapped button cannot drive this action, when it cannot.
+    ///
+    /// These two are symbolic hotkeys: WindowServer matches them against real
+    /// HID key presses and ignores synthetic events from every source, so
+    /// there is no way to fire them from a mouse button. The rest of the system
+    /// actions either go through the Dock (Mission Control and friends) or are
+    /// plain key/media events, which do work.
+    var unavailableNote: String? {
+        switch self {
+        case .spotlight:
+            "macOS only opens Spotlight for a real ⌘Space key press, so a remapped button cannot trigger it. Pick another action, or bind the button to a keyboard shortcut."
+        case .lockScreen:
+            "macOS only locks the screen for a real ⌃⌘Q key press, so a remapped button cannot trigger it. Use the Apple menu › Lock Screen, or pick another action."
+        default:
+            nil
+        }
+    }
 }
 
 enum MouseClickKind: Int, CaseIterable, Codable, Identifiable {

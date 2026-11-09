@@ -34,9 +34,18 @@ You can bind a control to:
 - A mouse click (left, right, middle)
 - Open an app, open a URL, or run a shell command
 
+Two of those actions cannot be driven from a button. **Spotlight** (`⌘Space`)
+and **Lock Screen** (`⌃⌘Q`) are symbolic hotkeys: macOS only honours them for
+a real key press and ignores anything an app synthesises, so a remapped button
+cannot fire them. The action picker marks them "(not available)" and explains
+the workaround (use the keyboard, or pick another action). Mission Control, App
+Exposé, Show Desktop and Launchpad work because they are driven through the
+Dock, and the media keys work because they are ordinary key events.
+
 Open **Settings → Mouse** to see the mouse's nine controls laid out as they are
-on the CITLLA diagram, click a row to change its binding, and **Test Buttons…**
-in the menu bar to see what each physical control actually sends.
+on the CITLLA diagram — each number is drawn on the render at the control it
+labels — click a row to change its binding, and **Test Buttons…** in the menu
+bar to see what each physical control actually sends.
 
 ## The mouse, as the manufacturer numbers it
 

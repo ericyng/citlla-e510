@@ -7,6 +7,7 @@ struct MouseControlBadge: View {
     let number: Int
     var active: Bool = false
     var muted: Bool = false
+    var size: CGFloat = 23
 
     static let blue = Color(red: 0 / 255, green: 117 / 255, blue: 249 / 255)
 
@@ -15,14 +16,18 @@ struct MouseControlBadge: View {
             Circle()
                 .fill(fill)
             Circle()
-                .strokeBorder(.white.opacity(0.85), lineWidth: 1.2)
+                .strokeBorder(.white.opacity(0.85), lineWidth: max(0.8, size * 0.05))
             Text("\(number)")
-                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .font(.system(size: size * 0.48, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
                 .monospacedDigit()
         }
-        .frame(width: 23, height: 23)
-        .shadow(color: active ? Self.blue.opacity(0.55) : .clear, radius: 6)
+        .frame(width: size, height: size)
+        .shadow(
+            color: active ? Self.blue.opacity(0.55) : .black.opacity(0.25),
+            radius: active ? 6 : 1.5,
+            y: active ? 0 : 0.5
+        )
         .scaleEffect(active ? 1.15 : 1)
         .animation(.spring(response: 0.25, dampingFraction: 0.55), value: active)
     }
@@ -34,41 +39,71 @@ struct MouseControlBadge: View {
 }
 
 /// The two renders lifted out of the diagram, on a light card so the dark
-/// mouse reads in both appearances.
+/// mouse reads in both appearances. Each control's diagram number is drawn
+/// straight on the render, at the spot the manufacturer's callout arrow points
+/// to, so the numbers in the legend can be matched to the physical buttons.
 struct MouseRenderPair: View {
     var height: CGFloat = 240
     var spacing: CGFloat = 14
+    var highlighted: Set<Int> = []
+
+    /// Matches the diagram's own callouts: about 11% of the render's width.
+    private static let badgeSize: CGFloat = 18
 
     var body: some View {
         HStack(alignment: .top, spacing: spacing) {
-            panel(image: "MouseTop", caption: "Top", aspect: 485.0 / 727.0)
-            panel(image: "MouseSide", caption: "Side", aspect: 320.0 / 753.0)
+            panel(.top, image: "MouseTop", caption: "Top", aspect: 530.0 / 767.0)
+            panel(.side, image: "MouseSide", caption: "Side", aspect: 320.0 / 753.0)
         }
     }
 
-    private func panel(image: String, caption: String, aspect: CGFloat) -> some View {
-        VStack(spacing: 6) {
-            Image(image)
-                .resizable()
-                .scaledToFit()
-                .frame(height: height)
-                .frame(width: height * aspect)
-                .padding(.vertical, 10)
-                .padding(.horizontal, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color(white: 0.99), Color(white: 0.90)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
+    private func panel(
+        _ render: MouseControl.Render,
+        image: String,
+        caption: String,
+        aspect: CGFloat
+    ) -> some View {
+        let width = height * aspect
+        let controls = MouseMap.controls.filter { $0.render == render }
+
+        return VStack(spacing: 6) {
+            ZStack(alignment: .topLeading) {
+                Image(image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: width, height: height)
+
+                ForEach(controls) { control in
+                    MouseControlBadge(
+                        number: control.number,
+                        active: highlighted.contains(control.number),
+                        muted: !control.isRemappable,
+                        size: Self.badgeSize
+                    )
+                    .position(
+                        x: min(max(control.badgePoint.x * width, Self.badgeSize / 2), width - Self.badgeSize / 2),
+                        y: min(max(control.badgePoint.y * height, Self.badgeSize / 2), height - Self.badgeSize / 2)
+                    )
+                    .help("\(control.number). \(control.title)")
+                }
+            }
+            .frame(width: width, height: height)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(white: 0.99), Color(white: 0.90)],
+                            startPoint: .top,
+                            endPoint: .bottom
                         )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(.black.opacity(0.08), lineWidth: 1)
-                )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(.black.opacity(0.08), lineWidth: 1)
+            )
             Text(caption)
                 .font(.caption2)
                 .foregroundStyle(.tertiary)

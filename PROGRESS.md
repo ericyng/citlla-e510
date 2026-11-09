@@ -113,6 +113,15 @@ The renders in `Assets.xcassets/Mouse/` are produced by
 the callout leader lines and the floor strip, keeps the largest blob, dilates
 back and writes 1x + 2x images. Re-run it if the diagram changes.
 
+The diagram's nine callout arrows were traced too (the leader lines are the
+light blue `#7EC8EE` strokes, ending in small arrowheads). Each arrow tip is
+the control's real position on the render, and those points are stored as
+normalised `MouseControl.badgePoint` values so the UI can print the number on
+the mouse itself. The top crop was also widened to `225,575 540×780`: the old
+`485`-wide rect cut roughly 30 px off the right of the mouse and clipped the
+bottom. The current output is 530×767 (top) and 320×753 (side), both with no
+opaque pixels on their edges.
+
 ## Open threads
 
 1. **Spotlight and Lock Screen.** Both are symbolic hotkeys, so nothing the app
@@ -131,11 +140,10 @@ back and writes 1x + 2x images. Re-run it if the diagram changes.
 4. **Do buttons 4/5 still need rows?** The defaults and the user config still
    list them, but this mouse never sends them. Removing or hiding them would
    make the Buttons tab shorter and less confusing.
-5. **Diagram hotspots.** The renders are currently artwork only; the numbered
-   legend is the interactive surface. Overlaying hit targets on the renders
-   would need the badge positions mapped to the render crops (coordinates are
-   recorded in the git history of this session), and it was skipped because a
-   wrong hotspot is worse than none.
+5. **Diagram hotspots.** The numbered badges now sit on the renders at the
+   manufacturer's callout points (`MouseControl.badgePoint`), but the renders
+   are still not clickable; the legend remains the interactive surface. Making
+   the badges hit targets is the next step.
 6. **Signing.** No trusted codesigning identity is present on this machine.
    `Scripts/build.sh` now re-signs ad hoc with an identifier-based designated
    requirement, which should keep TCC grants across rebuilds without a
@@ -181,3 +189,6 @@ back and writes 1x + 2x images. Re-run it if the diagram changes.
   shortcuts, shortcut bindings + editor, tester source fixes
 - today: system actions moved to the Dock (`DockControl`) after finding that
   synthetic events never trigger symbolic hotkeys; App Exposé via `AXShowExpose`
+- today: callout numbers drawn on the mouse renders (`badgePoint` from the
+  diagram's arrow tips), top crop widened so the artwork is no longer clipped,
+  Spotlight and Lock Screen marked "(not available)" in the action picker

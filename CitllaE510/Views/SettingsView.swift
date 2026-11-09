@@ -65,7 +65,7 @@ struct MouseSettingsView: View {
             .padding(.bottom, 12)
 
             HStack(alignment: .top, spacing: 20) {
-                MouseRenderPair(height: 244)
+                MouseRenderPair(height: 232)
 
                 ScrollView {
                     MouseControlLegend(

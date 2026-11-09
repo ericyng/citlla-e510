@@ -28,6 +28,26 @@ struct MouseControl: Identifiable, Hashable, Sendable {
     /// control is known to produce.
     let hidButtons: [Int]
 
+    /// Where the manufacturer's callout arrow lands on the render, as a
+    /// fraction of that render's width and height. Measured from the leader
+    /// lines in `Design/citlla-diagram.png`, then mapped through the crop and
+    /// trim in `Scripts/extract-assets.swift` (top view: 530x767 starting at
+    /// diagram 225,588; side view: 320x753 starting at diagram 958,581).
+    var badgePoint: CGPoint {
+        switch number {
+        case 1: CGPoint(x: 0.419, y: 0.113)   // left button, front-left of the top view
+        case 2: CGPoint(x: 0.719, y: 0.098)   // right button, front-right of the top view
+        case 3: CGPoint(x: 0.583, y: 0.194)   // scroll wheel, centre of the top view
+        case 4: CGPoint(x: 0.555, y: 0.372)   // DPI button, behind the wheel
+        case 5: CGPoint(x: 0.744, y: 0.436)   // side wheel, middle of the side view
+        case 6: CGPoint(x: 0.816, y: 0.547)   // devices switch, below the side wheel
+        case 7: CGPoint(x: 0.363, y: 0.214)   // LED strip, upper side view
+        case 8: CGPoint(x: 0.594, y: 0.495)   // between the two thumb buttons
+        case 9: CGPoint(x: 0.064, y: 0.459)   // bottom thumb button, left edge of the top view
+        default: CGPoint(x: 0.5, y: 0.5)
+        }
+    }
+
     var id: Int { number }
 
     /// The LEDs on top of the mouse are not buttons; there is nothing to remap.
@@ -122,7 +142,7 @@ enum MouseMap {
             title: "Return to Desktop / Full Screen",
             note: "Bottom-right thumb button. Factory profile sends ⌃⌘F.",
             kind: .button,
-            render: .side,
+            render: .top,
             hidButtons: []
         )
     ]
