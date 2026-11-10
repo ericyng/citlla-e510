@@ -1,6 +1,27 @@
 # Plan: full Citlla E510 app + action sequences
 
-Status: proposal · 2026-11-09
+Status: in delivery · 2026-11-09
+
+## 0. Delivery state
+
+| Track | State | Commit |
+| --- | --- | --- |
+| T0 Contract | merged | `86b2b52` (+ `589aaae` config clobber fix, `31bb04d` check.sh) |
+| T1 Core actions | merged | `7fd25e5` |
+| T2 App shell | merged | `3a74180`, merge `8fe3497` |
+| T3 Macro UI | merged | `cf7a9a0`, merge `207d8e9` |
+| T5 Scrolling | merged | `1ac8b38`, merge `66d0dfb` |
+| — Remapping-off cancel hook | merged | `6c02634` |
+| — Shared action fields (tilt collapsed onto it) | merged | `4b49923` |
+| — Actions + Scrolling sections wired into the shell | merged | `2f8071f` |
+| T4 Profiles | in flight, `track/profiles` | — |
+| T6 QA + docs | not started | — |
+
+The merge gate is `Scripts/check.sh`: it runs the tests, builds and signs, and
+renders one 2× snapshot per sidebar section, asserting the `section=` the binary
+reports rather than assuming a successful render means the right pane (see
+`Snapshot.swift`). Live hardware verification happens only on the copy installed
+to `/Applications`; worktree builds are never `open`ed (see §6).
 
 This is the delivery plan for turning the menu bar remapper into a Logi Options+
 style app, and for adding chained actions (chords and multi-step sequences).
