@@ -354,6 +354,38 @@ final class ActionContractTests: XCTestCase {
         XCTAssertNotEqual(MacroOwner.button(3), MacroOwner.shortcut("button-3"))
         XCTAssertEqual(MacroOwner.shortcut("key-123-0"), MacroOwner.shortcut("key-123-0"))
     }
+
+    // MARK: Editing a whole action through the step type
+
+    func testApplyingAStepKeepsTheSequenceSteps() {
+        var action = MouseAction(
+            kind: .sequence,
+            steps: [ActionStep(kind: .system, system: .back)]
+        )
+        action.apply(ActionStep(kind: .mouseClick, click: .left, clickModifiers: command))
+
+        XCTAssertEqual(action.kind, .mouseClick)
+        XCTAssertEqual(action.clickModifiers, command)
+        XCTAssertEqual(action.steps.count, 1, "editing the fields must not drop the sequence")
+    }
+
+    func testStepAndActionRoundTripEveryPerKindField() {
+        let original = MouseAction(
+            kind: .mouseClick,
+            system: .spotlight,
+            keyCode: 21,
+            modifiers: option,
+            hasShortcut: true,
+            click: .right,
+            clickModifiers: command,
+            text: "/Applications/Safari.app",
+            steps: [ActionStep(kind: .system, system: .forward)]
+        )
+        var copied = original
+        copied.apply(original.asStep)
+
+        XCTAssertEqual(copied, original, "the editor's field bridge must be lossless")
+    }
 }
 
 final class MouseMapTests: XCTestCase {

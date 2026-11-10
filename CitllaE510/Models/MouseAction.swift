@@ -286,6 +286,23 @@ struct MouseAction: Codable, Equatable, Sendable {
         )
     }
 
+    /// Copies the per-kind fields of `step` back onto the action, keeping
+    /// `steps`.
+    ///
+    /// The editor binds one shared fields view either to a step or to a whole
+    /// action. Without a single place that knows the field list, adding a field
+    /// to `ActionStep` would silently drop it on the way back to `MouseAction`.
+    mutating func apply(_ step: ActionStep) {
+        kind = step.kind
+        system = step.system
+        keyCode = step.keyCode
+        modifiers = step.modifiers
+        hasShortcut = step.hasShortcut
+        click = step.click
+        clickModifiers = step.clickModifiers
+        text = step.text
+    }
+
     /// The steps the runner should actually fire for this action.
     ///
     /// Only a `.sequence` has steps. Asking any other kind returns nothing, so a

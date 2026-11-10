@@ -145,10 +145,10 @@ private struct TiltRow: View {
 
 /// Edits one tilt action.
 ///
-/// Deliberately a smaller copy of `ActionEditorSheet` rather than a new target
-/// on it: the shared action editor is being reworked by the macro-ui track, and
-/// the Scrolling section must not block on or collide with it. Once
-/// `ActionFieldsView` exists this sheet can collapse into it.
+/// The same controls as the button editor: `ActionFieldsView` for every kind and
+/// `MacroEditorView` for a sequence, so a tilt can be a chord click or a short
+/// sequence exactly like a button can. The only difference is the empty text and
+/// the save target.
 private struct TiltActionSheet: View {
     let direction: TiltDirection
 
@@ -164,114 +164,36 @@ private struct TiltActionSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 12) {
-                Image(systemName: direction.symbolName)
-                    .font(.system(size: 24, weight: .medium))
-                    .foregroundStyle(.secondary)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(direction.title).font(.headline)
-                    Text("Side wheel, fires once per flick")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-            }
-            .padding(20)
-
+            header
             Divider()
 
-            Form {
+            VStack(alignment: .leading, spacing: 14) {
                 Picker("Action", selection: $draft.kind) {
-                    // `.sequence` is intentionally absent until the step editor
-                    // lands; the picker must never offer an option with no UI.
                     ForEach(ActionKind.editableCases) { kind in
                         Label(kind.title, systemImage: kind.symbolName).tag(kind)
                     }
                 }
 
-                switch draft.kind {
-                case .none:
-                    Text("This tilt will scroll horizontally.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-
-                case .system:
-                    Picker("System action", selection: $draft.system) {
-                        ForEach(SystemAction.allCases) { action in
-                            Label(
-                                action.unavailableNote == nil
-                                    ? action.title
-                                    : "\(action.title) (not available)",
-                                systemImage: action.symbolName
-                            )
-                            .tag(action)
-                        }
-                    }
-                    if let note = draft.system.unavailableNote {
-                        HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange)
-                            Text(note)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-
-                case .keyboardShortcut:
-                    LabeledContent("Shortcut") {
-                        ShortcutRecorder(
-                            keyCode: $draft.keyCode,
-                            modifiers: $draft.modifiers,
-                            hasShortcut: $draft.hasShortcut
-                        )
-                    }
-                    Text("Click Record, then press the key combination. Escape cancels.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                case .mouseClick:
-                    Picker("Click", selection: $draft.click) {
-                        ForEach(MouseClickKind.allCases) { click in
-                            Text(click.title).tag(click)
-                        }
-                    }
-
-                case .openApp:
-                    LabeledContent("Application") {
-                        HStack {
-                            TextField("/Applications/Example.app", text: $draft.text)
-                                .textFieldStyle(.roundedBorder)
-                            Button("Choose…") { chooseApp() }
-                        }
-                    }
-
-                case .openURL:
-                    TextField("https://example.com", text: $draft.text)
-                        .textFieldStyle(.roundedBorder)
-
-                case .shellCommand:
-                    TextField("/usr/bin/say hello", text: $draft.text)
-                        .textFieldStyle(.roundedBorder)
-                        .font(.system(.body, design: .monospaced))
-                    Text("Runs through /bin/zsh -lc. Only use commands you trust.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                case .sequence:
-                    // Reachable only from a config written by a later build.
-                    Text("This version cannot edit sequences.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+                if draft.kind == .sequence {
+                    MacroEditorView(steps: $draft.steps)
+                } else {
+                    ActionFieldsView(
+                        action: $draft,
+                        emptyText: "This tilt will scroll horizontally."
+                    )
                 }
             }
-            .formStyle(.grouped)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
 
             Divider()
 
             HStack {
+                if draft.kind == .sequence, !draft.steps.isEmpty {
+                    Text(ActionKind.sequence.title)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
                 Button("Cancel") { dismiss() }
                     .keyboardShortcut(.cancelAction)
@@ -280,23 +202,44 @@ private struct TiltActionSheet: View {
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(draft.kind == .keyboardShortcut && !draft.hasShortcut)
+                .disabled(!canSave)
             }
             .padding(16)
         }
-        .frame(width: 560)
+        .frame(width: 640)
+        .onChange(of: draft.kind) { _, newKind in
+            // Same rule as the button editor: a sequence with no steps would be
+            // an unbound action and quietly turn the tilt back into scrolling.
+            if newKind == .sequence, draft.steps.isEmpty {
+                draft.steps = [ActionStep(kind: .keyboardShortcut)]
+            }
+        }
     }
 
-    private func chooseApp() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.application]
-        panel.canChooseDirectories = false
-        panel.canChooseFiles = true
-        panel.allowsMultipleSelection = false
-        panel.directoryURL = URL(fileURLWithPath: "/Applications")
-        panel.prompt = "Choose"
-        if panel.runModal() == .OK, let url = panel.url {
-            draft.text = url.path
+    private var header: some View {
+        HStack(spacing: 12) {
+            Image(systemName: direction.symbolName)
+                .font(.system(size: 24, weight: .medium))
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(direction.title).font(.headline)
+                Text("Side wheel, fires once per flick")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(20)
+    }
+
+    private var canSave: Bool {
+        switch draft.kind {
+        case .keyboardShortcut:
+            draft.hasShortcut
+        case .sequence:
+            draft.steps.contains { $0.kind != .none && $0.kind != .sequence }
+        default:
+            true
         }
     }
 }

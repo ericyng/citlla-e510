@@ -80,7 +80,7 @@ struct ActionEditorSheet: View {
                     MacroEditorView(steps: $draft.steps)
                 } else {
                     ActionFieldsView(
-                        fields: fields,
+                        action: $draft,
                         emptyText: "This button will behave normally."
                     )
                 }
@@ -156,25 +156,6 @@ struct ActionEditorSheet: View {
         .padding(20)
     }
 
-    /// The top-level action viewed as one step, so the same fields control can
-    /// drive both a whole action and a sequence row. `steps` is preserved by the
-    /// setter, so switching kinds never loses a sequence's steps.
-    private var fields: Binding<ActionStep> {
-        Binding(
-            get: { draft.asStep },
-            set: { step in
-                draft.kind = step.kind
-                draft.system = step.system
-                draft.keyCode = step.keyCode
-                draft.modifiers = step.modifiers
-                draft.hasShortcut = step.hasShortcut
-                draft.click = step.click
-                draft.clickModifiers = step.clickModifiers
-                draft.text = step.text
-            }
-        )
-    }
-
     private var canSave: Bool {
         switch draft.kind {
         case .keyboardShortcut:
@@ -213,6 +194,34 @@ struct ActionFieldsView: View {
     /// no explanatory captions.
     var compact = false
     var emptyText = "Does nothing. A step like this is skipped when the sequence runs."
+
+    init(
+        fields: Binding<ActionStep>,
+        compact: Bool = false,
+        emptyText: String = "Does nothing. A step like this is skipped when the sequence runs."
+    ) {
+        self._fields = fields
+        self.compact = compact
+        self.emptyText = emptyText
+    }
+
+    /// The same controls for a whole action, so a sheet and a step row cannot
+    /// drift. `apply` preserves `steps`, so editing the fields of a sequence
+    /// action never discards its step list.
+    init(
+        action: Binding<MouseAction>,
+        compact: Bool = false,
+        emptyText: String = "Does nothing. A step like this is skipped when the sequence runs."
+    ) {
+        self.init(
+            fields: Binding(
+                get: { action.wrappedValue.asStep },
+                set: { action.wrappedValue.apply($0) }
+            ),
+            compact: compact,
+            emptyText: emptyText
+        )
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: compact ? 8 : 10) {
