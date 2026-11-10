@@ -14,11 +14,10 @@ enum ActionKind: String, CaseIterable, Codable, Identifiable {
 
     var id: String { rawValue }
 
-    /// Kinds the action editor offers. `.sequence` is hidden until the step
-    /// editor lands, so the picker never offers an option with no UI behind it.
-    /// The kind still exists now so configs, the runner and the tests can be
-    /// written against a frozen type.
-    static var editableCases: [ActionKind] { allCases.filter { $0 != .sequence } }
+    /// Kinds the action editor offers. Every kind now has an editor, so the
+    /// picker offers them all; only a *step* still excludes `.sequence`, because
+    /// nesting is flattened rather than run.
+    static var editableCases: [ActionKind] { allCases }
 
     /// Kinds a sequence step may hold. A step cannot itself be a sequence;
     /// nesting is flattened when a config loads.

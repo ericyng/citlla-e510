@@ -65,118 +65,44 @@ struct ActionEditorSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 12) {
-                Image(systemName: target.symbolName)
-                    .font(.system(size: 24, weight: .medium))
-                    .foregroundStyle(.secondary)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(target.name).font(.headline)
-                    Text(target.subtitle).font(.caption).foregroundStyle(.secondary)
-                }
-                Spacer()
-            }
-            .padding(20)
+            header
 
             Divider()
 
-            Form {
+            VStack(alignment: .leading, spacing: 14) {
                 Picker("Action", selection: $draft.kind) {
-                    // `.sequence` is intentionally absent until the step editor
-                    // lands; the picker must never offer an option with no UI.
                     ForEach(ActionKind.editableCases) { kind in
                         Label(kind.title, systemImage: kind.symbolName).tag(kind)
                     }
                 }
 
-                switch draft.kind {
-                case .none:
-                    Text("This button will behave normally.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-
-                case .system:
-                    Picker("System action", selection: $draft.system) {
-                        ForEach(SystemAction.allCases) { action in
-                            Label(
-                                action.unavailableNote == nil
-                                    ? action.title
-                                    : "\(action.title) (not available)",
-                                systemImage: action.symbolName
-                            )
-                            .tag(action)
-                        }
-                    }
-                    if let note = draft.system.unavailableNote {
-                        HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange)
-                            Text(note)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-
-                case .keyboardShortcut:
-                    LabeledContent("Shortcut") {
-                        ShortcutRecorder(
-                            keyCode: $draft.keyCode,
-                            modifiers: $draft.modifiers,
-                            hasShortcut: $draft.hasShortcut
-                        )
-                    }
-                    Text("Click Record, then press the key combination. Escape cancels.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                case .mouseClick:
-                    Picker("Click", selection: $draft.click) {
-                        ForEach(MouseClickKind.allCases) { click in
-                            Text(click.title).tag(click)
-                        }
-                    }
-
-                case .openApp:
-                    LabeledContent("Application") {
-                        HStack {
-                            TextField("/Applications/Example.app", text: $draft.text)
-                                .textFieldStyle(.roundedBorder)
-                            Button("Choose…") { chooseApp() }
-                        }
-                    }
-
-                case .openURL:
-                    TextField("https://example.com", text: $draft.text)
-                        .textFieldStyle(.roundedBorder)
-
-                case .shellCommand:
-                    TextField("/usr/bin/say hello", text: $draft.text)
-                        .textFieldStyle(.roundedBorder)
-                        .font(.system(.body, design: .monospaced))
-                    Text("Runs through /bin/zsh -lc. Only use commands you trust.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                case .sequence:
-                    // Reachable only from a config written by a later build.
-                    Text("This version cannot edit sequences.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+                if draft.kind == .sequence {
+                    MacroEditorView(steps: $draft.steps)
+                } else {
+                    ActionFieldsView(
+                        fields: fields,
+                        emptyText: "This button will behave normally."
+                    )
                 }
 
                 if case .shortcut = target {
                     Text("Only the mouse's own presses of this key are remapped. The same shortcut on the keyboard still works normally.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .formStyle(.grouped)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
 
             Divider()
 
             HStack {
+                if draft.kind == .sequence, !draft.steps.isEmpty {
+                    Text(ActionKind.sequence.title)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
                 Button("Cancel") { dismiss() }
                     .keyboardShortcut(.cancelAction)
@@ -185,11 +111,81 @@ struct ActionEditorSheet: View {
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(draft.kind == .keyboardShortcut && !draft.hasShortcut)
+                .disabled(!canSave)
             }
             .padding(16)
         }
-        .frame(width: 560)
+        .frame(width: 640)
+        .onChange(of: draft.kind) { _, newKind in
+            // Switching to Sequence with no steps used to leave the editor with
+            // nothing to edit. Start with one row so the kind is usable
+            // immediately; the Presets menu is the quicker route for real work.
+            if newKind == .sequence, draft.steps.isEmpty {
+                draft.steps = [ActionStep(kind: .keyboardShortcut)]
+            }
+        }
+    }
+
+    private var header: some View {
+        HStack(spacing: 12) {
+            Image(systemName: target.symbolName)
+                .font(.system(size: 24, weight: .medium))
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(target.name).font(.headline)
+                Text(target.subtitle).font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+
+            Menu {
+                ForEach(ActionPreset.all) { preset in
+                    Button {
+                        draft = preset.make()
+                    } label: {
+                        Text(preset.name)
+                    }
+                    .help(preset.detail)
+                }
+            } label: {
+                Label("Presets", systemImage: "wand.and.stars")
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .help("Fill the editor with a ready-made action, including sequences and chords.")
+        }
+        .padding(20)
+    }
+
+    /// The top-level action viewed as one step, so the same fields control can
+    /// drive both a whole action and a sequence row. `steps` is preserved by the
+    /// setter, so switching kinds never loses a sequence's steps.
+    private var fields: Binding<ActionStep> {
+        Binding(
+            get: { draft.asStep },
+            set: { step in
+                draft.kind = step.kind
+                draft.system = step.system
+                draft.keyCode = step.keyCode
+                draft.modifiers = step.modifiers
+                draft.hasShortcut = step.hasShortcut
+                draft.click = step.click
+                draft.clickModifiers = step.clickModifiers
+                draft.text = step.text
+            }
+        )
+    }
+
+    private var canSave: Bool {
+        switch draft.kind {
+        case .keyboardShortcut:
+            draft.hasShortcut
+        case .sequence:
+            // An empty sequence is `isBound == false` and would quietly turn the
+            // button into a pass-through; require at least one real step.
+            draft.steps.contains { $0.kind != .none && $0.kind != .sequence }
+        default:
+            true
+        }
     }
 
     private func save() {
@@ -199,6 +195,153 @@ struct ActionEditorSheet: View {
         case .shortcut(let binding):
             config.setAction(draft, forShortcut: binding.id)
         }
+    }
+}
+
+// MARK: - Shared per-kind fields
+
+/// The controls behind one action kind: system picker, shortcut recorder, click
+/// and its chord modifiers, app picker, URL and shell fields.
+///
+/// A `MouseAction` and an `ActionStep` carry the same per-kind fields, so both
+/// the sheet and a step row bind their own value through this view. Nothing in
+/// here can create a nested sequence: step callers only ever bind an
+/// `ActionStep`, whose kind picker excludes `.sequence`.
+struct ActionFieldsView: View {
+    @Binding var fields: ActionStep
+    /// A step row inside the sequence editor. Same controls, tighter spacing and
+    /// no explanatory captions.
+    var compact = false
+    var emptyText = "Does nothing. A step like this is skipped when the sequence runs."
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: compact ? 8 : 10) {
+            switch fields.kind {
+            case .none:
+                Text(emptyText)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+
+            case .system:
+                Picker("System action", selection: $fields.system) {
+                    ForEach(SystemAction.allCases) { action in
+                        Label(
+                            action.unavailableNote == nil
+                                ? action.title
+                                : "\(action.title) (not available)",
+                            systemImage: action.symbolName
+                        )
+                        .tag(action)
+                    }
+                }
+                if let note = fields.system.unavailableNote {
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text(note)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+            case .keyboardShortcut:
+                ShortcutRecorder(
+                    keyCode: $fields.keyCode,
+                    modifiers: $fields.modifiers,
+                    hasShortcut: $fields.hasShortcut
+                )
+                if !compact {
+                    Text("Click Record, then press the key combination. Escape cancels.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+            case .mouseClick:
+                Picker("Click", selection: $fields.click) {
+                    ForEach(MouseClickKind.allCases) { click in
+                        Text(click.title).tag(click)
+                    }
+                }
+                chordRow
+                if !compact {
+                    Text("The modifiers are held down around the click, so ⌘-click opens a link in a new tab and ⌥-click downloads it.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+            case .openApp:
+                HStack(spacing: 8) {
+                    TextField("/Applications/Example.app", text: $fields.text)
+                        .textFieldStyle(.roundedBorder)
+                    Button("Choose…") { chooseApp() }
+                }
+
+            case .openURL:
+                TextField("https://example.com", text: $fields.text)
+                    .textFieldStyle(.roundedBorder)
+
+            case .shellCommand:
+                TextField("/usr/bin/say hello", text: $fields.text)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(.body, design: .monospaced))
+                if !compact {
+                    Text("Runs through /bin/zsh -lc. Only use commands you trust.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+            case .sequence:
+                Text("A sequence cannot contain another sequence.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// ⌃ ⌥ ⇧ ⌘ for a `.mouseClick`, with a live "⌘ Left Click" preview. This is
+    /// the only way to reach the chord support the executor already has.
+    private var chordRow: some View {
+        HStack(spacing: 6) {
+            Text("Hold")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.trailing, 2)
+
+            ForEach(ChordModifier.allCases) { modifier in
+                Toggle(modifier.symbol, isOn: chordBinding(modifier))
+                    .toggleStyle(.button)
+                    .controlSize(.small)
+                    .help(modifier.title)
+            }
+
+            Text(MouseAction.describe(click: fields.click, modifiers: fields.clickModifiers))
+                .font(.system(.callout, design: .monospaced))
+                .foregroundStyle(fields.clickModifiers == 0 ? .secondary : .primary)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .fill(Color.secondary.opacity(0.12))
+                )
+                .padding(.leading, 4)
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    private func chordBinding(_ modifier: ChordModifier) -> Binding<Bool> {
+        Binding(
+            get: { ChordModifier.isOn(modifier, in: fields.clickModifiers) },
+            set: { isOn in
+                fields.clickModifiers = ChordModifier.setting(
+                    modifier,
+                    on: isOn,
+                    in: fields.clickModifiers
+                )
+            }
+        )
     }
 
     private func chooseApp() {
@@ -210,7 +353,7 @@ struct ActionEditorSheet: View {
         panel.directoryURL = URL(fileURLWithPath: "/Applications")
         panel.prompt = "Choose"
         if panel.runModal() == .OK, let url = panel.url {
-            draft.text = url.path
+            fields.text = url.path
         }
     }
 }
