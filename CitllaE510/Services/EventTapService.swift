@@ -22,6 +22,8 @@ final class EventTapService: ObservableObject {
     private var pressedConsumerKeys = Set<Int32>()
     private var hasPromptedForAccessibility = false
     private var scrollController = ScrollController()
+    /// Tracks the remapping switch so the transition to off can cancel runs.
+    private var remappingWasEnabled = true
 
     /// The event types the tap watches. Kept as a property so tests can assert
     /// that a new type really is in the mask.
@@ -90,6 +92,9 @@ final class EventTapService: ObservableObject {
     }
 
     func stop() {
+        // No run may outlive the tap: a sequence posts events directly and does
+        // not go through the tap, so it would keep firing after remapping is off.
+        MacroRunner.cancelAll()
         if let tap {
             CGEvent.tapEnable(tap: tap, enable: false)
             CFMachPortInvalidate(tap)
@@ -126,8 +131,16 @@ final class EventTapService: ObservableObject {
         }
 
         guard config.config.enabled else {
+            // Turning remapping off must stop a sequence already in flight, not
+            // just stop new presses: otherwise the remaining steps keep posting
+            // events for up to three seconds after the switch is off.
+            if remappingWasEnabled {
+                remappingWasEnabled = false
+                MacroRunner.cancelAll()
+            }
             return Unmanaged.passUnretained(event)
         }
+        remappingWasEnabled = true
 
         switch type {
         case .leftMouseDown, .rightMouseDown, .otherMouseDown:
