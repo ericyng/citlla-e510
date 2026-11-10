@@ -289,26 +289,46 @@ final class ButtonTester: ObservableObject {
         let pointing = event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2)
         let continuous = event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
 
+        // The tester's tap runs ahead of the remapper's, so these are the raw
+        // values: describe what the Scrolling section will do with them rather
+        // than what already happened.
+        let settings = config.config.scroll
+
         if horizontal != 0 || pointing != 0 {
-            let direction = (horizontal + pointing) < 0 ? "left" : "right"
+            let tilt = TiltDirection.direction(forHorizontalDelta: horizontal + pointing)
+            let direction = tilt == .left ? "left" : "right"
+            let action = tilt.map { settings.action(for: $0) } ?? MouseAction()
+
+            let verdict: TesterVerdict
+            if action.isBound {
+                verdict = .other("Tilt \(direction) fires \(action.summary).")
+            } else if settings.invertHorizontal {
+                verdict = .other("Tilt \(direction) is not mapped; it scrolls horizontally, inverted.")
+            } else {
+                verdict = .other("Tilt \(direction) is not mapped; it scrolls horizontally as it does now.")
+            }
+
             record(
                 category: "Scroll",
                 summary: "Tilt \(direction)",
                 detail: "horizontal delta \(horizontal)/\(pointing), vertical \(vertical)",
                 controlKey: "tilt-\(direction)",
                 label: "Tilt \(direction)",
-                verdict: .other("Horizontal scroll/tilt. The remapper does not handle scroll events yet."),
+                verdict: verdict,
                 control: 5
             )
         } else {
             let direction = vertical < 0 ? "down" : "up"
+            let verdict: TesterVerdict = settings.invertVertical
+                ? .other("Vertical scrolling, inverted by the Scrolling section.")
+                : .other("Normal scrolling, passed through.")
             record(
                 category: "Scroll",
                 summary: "Vertical \(direction)",
                 detail: "delta \(vertical)\(continuous ? ", continuous" : "")",
                 controlKey: "scroll-v",
                 label: "Wheel",
-                verdict: .other("Normal scrolling, passed through."),
+                verdict: verdict,
                 control: 3
             )
         }
