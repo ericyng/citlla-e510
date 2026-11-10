@@ -1,6 +1,6 @@
 # Progress
 
-Last updated: 2026-11-08
+Last updated: 2026-11-09
 
 Where the Citlla E510 app stands, what was learned about the mouse, and what is
 next. `README.md` is the user-facing documentation; this file is the working
@@ -10,16 +10,17 @@ log.
 
 - Debug and Release builds are healthy; `Scripts/build.sh` runs tests, builds,
   verifies the bundle, installs and launches.
-- 47 unit tests pass (config round-trip, action model, button naming, key codes,
+- 48 unit tests pass (config round-trip, action model, button naming, key codes,
   shortcut bindings, media-key decoding, receiver matching, and the diagram's
   nine callouts).
 - Menu bar app (`LSUIElement`): menu bar icon, Settings (Mouse / Buttons /
   Permissions / About), Diagnostics, Button Tester.
 - Current bindings in `~/Library/Application Support/CitllaE510/config.json`:
-  buttons 1–2 pass through, 3 → Show Desktop, 4 → Back, 5 → Forward, 6–8
-  unbound. Buttons 4 and 5 are never sent by this mouse, so the real thumb
-  buttons use the shortcut bindings instead (`⌃←` → Back, `⌃→` → Forward).
-  Callout 9 is a shortcut binding too (`⌃⌘F`) and starts unbound.
+  buttons 1–2 pass through, 3 → Mission Control. Only buttons 1–3 are listed;
+  the mouse never sends 4–8, and rows for them from older configs are trimmed
+  on load. The real thumb buttons use the shortcut bindings instead
+  (`⌃←` → Back, `⌃→` → Forward). Callout 9 is a shortcut binding too (`⌃⌘F`)
+  and starts unbound.
 - Three fixes landed, all confirmed live on 2026-11-08:
   1. **Mission Control / Show Desktop / Launchpad / App Exposé:** posting the
      matching keystrokes never works — see "System actions" below. They go
@@ -49,7 +50,7 @@ Accessibility appears.
 | Mouse keystrokes | `MouseKeyTagger` opens the receiver (any ID in `MouseReceiver.known`: `0x1EA7:0x66`, `0x32C2:0x12`; see FIX-THUMB-BUTTONS.md) read-only with `IOHIDManager` on a background run loop. Key-downs are recorded for 120 ms; the tap only acts when the mouse just sent that key. Modifier key-downs are matched before a sample is claimed, so `⌃`/`⌘` down does not steal the tag for the key after it. |
 | Actions | macOS actions (Mission Control, Show Desktop, Launchpad, screenshot…), any keyboard shortcut, mouse clicks, open app / URL / shell command. Mission Control, App Exposé, Show Desktop and Launchpad go through the Dock; everything else is posted as events. |
 | Settings → Mouse | The two renders cut from the manufacturer's diagram, next to the nine numbered callouts with the diagram's own wording. Callout 8 shows both thumb-button actions. Clicking a row opens the action editor. Fixed 860×720 window. |
-| Settings → Buttons | Toggle, a **Mouse Keystrokes** section (`⌃←` / `⌃→` / `⌃⌘F`, all editable), and the eight reported mouse buttons. |
+| Settings → Buttons | Toggle, a **Mouse Keystrokes** section (`⌃←` / `⌃→` / `⌃⌘F`, all editable), and the three mouse buttons the hardware reports. |
 | Test Buttons… | Listen-only tap at head insert: highlights and counts each diagram control as it is pressed, shows a raw log, and *Copy Report*. Mouse-sent keystrokes are labelled **Mouse key** and marked bindable; keyboard events are labelled separately. |
 | Diagnostics | Raw HID reports from the receiver (needs Input Monitoring). |
 | `--status` | Prints accessibility / input monitoring / tap state and exits. |
@@ -144,18 +145,14 @@ opaque pixels on their edges.
    a control that is not one of the nine diagram buttons. Consumer bindings are
    implemented (`ShortcutBinding.source == .consumer`), but nothing in the UI
    creates one yet; a "learn from tester" button would make it assignable.
-4. **Do buttons 4/5 still need rows?** The defaults and the user config still
-   list them, but this mouse never sends them. Removing or hiding them would
-   make the Buttons tab shorter and less confusing.
-5. **Diagram hotspots.** The numbered badges now sit on the renders at the
+4. **Diagram hotspots.** The numbered badges now sit on the renders at the
    manufacturer's callout points (`MouseControl.badgePoint`), but the renders
    are still not clickable; the legend remains the interactive surface. Making
    the badges hit targets is the next step.
-6. **Signing.** No trusted codesigning identity is present on this machine.
-   `Scripts/build.sh` now re-signs ad hoc with an identifier-based designated
-   requirement, which should keep TCC grants across rebuilds without a
-   certificate. An untrusted "Citlla E510 Self Signed" certificate is still in
-   the login keychain from the earlier attempt and can be deleted.
+
+Resolved: the Buttons tab no longer lists buttons 4–8 (the hardware never sends
+them, and old configs are trimmed on load), and the stale "Citlla E510 Self
+Signed" certificate was deleted from the login keychain.
 
 ## Verification notes
 
@@ -205,3 +202,7 @@ opaque pixels on their edges.
   (`0x1EA7:0x66` and `0x32C2:0x12`), so both E510 receiver revisions remap;
   Diagnostics adds vendor-only fallbacks, the tagger stays on exact IDs, and the
   About tab lists the supported receivers
+- today: Buttons tab lists only the three buttons the mouse reports; older
+  configs drop their 4–8 rows on load (`ButtonBinding.retiredButtons`). Deleted
+  the stale "Citlla E510 Self Signed" certificate, and regenerated the docs
+  screenshots at 2x from the installed build

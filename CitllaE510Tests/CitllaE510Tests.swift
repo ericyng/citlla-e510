@@ -4,14 +4,13 @@ import XCTest
 @testable import CitllaE510
 
 final class AppConfigTests: XCTestCase {
-    func testDefaultsBindSideButtonsToBackAndForward() {
+    func testDefaultsReportOnlyTheButtonsThisMouseSends() {
         let config = AppConfig()
 
-        XCTAssertEqual(config.bindings.count, 8)
-        XCTAssertEqual(config.action(for: 4), MouseAction(kind: .system, system: .back))
-        XCTAssertEqual(config.action(for: 5), MouseAction(kind: .system, system: .forward))
-        XCTAssertFalse(config.action(for: 1)?.isBound ?? true)
-        XCTAssertFalse(config.action(for: 8)?.isBound ?? true)
+        XCTAssertEqual(config.bindings.map(\.button), [1, 2, 3])
+        XCTAssertFalse(config.bindings.contains { $0.action.isBound })
+        XCTAssertNil(config.action(for: 4), "this mouse never sends buttons 4-8")
+        XCTAssertNil(config.action(for: 8))
     }
 
     func testActionForUnknownButtonIsNil() {
@@ -20,10 +19,10 @@ final class AppConfigTests: XCTestCase {
 
     func testSetActionUpdatesExistingButton() {
         var config = AppConfig()
-        config.setAction(MouseAction(kind: .system, system: .missionControl), for: 4)
+        config.setAction(MouseAction(kind: .system, system: .missionControl), for: 3)
 
-        XCTAssertEqual(config.action(for: 4)?.system, .missionControl)
-        XCTAssertEqual(config.bindings.count, 8, "existing buttons should be updated, not duplicated")
+        XCTAssertEqual(config.action(for: 3)?.system, .missionControl)
+        XCTAssertEqual(config.bindings.count, 3, "existing buttons should be updated, not duplicated")
     }
 
     func testSetActionAppendsNewButton() {
@@ -31,15 +30,16 @@ final class AppConfigTests: XCTestCase {
         config.setAction(MouseAction(kind: .system, system: .mute), for: 12)
 
         XCTAssertEqual(config.action(for: 12)?.system, .mute)
-        XCTAssertEqual(config.bindings.count, 9)
+        XCTAssertEqual(config.bindings.count, 4)
     }
 
     func testResetToDefaults() {
         var config = AppConfig()
-        config.setAction(.none, for: 4)
+        config.setAction(MouseAction(kind: .system, system: .missionControl), for: 3)
         config.resetToDefaults()
 
-        XCTAssertEqual(config.action(for: 4)?.system, .back)
+        XCTAssertEqual(config.bindings, ButtonBinding.defaults)
+        XCTAssertFalse(config.action(for: 3)?.isBound ?? true)
     }
 
     func testDecodingOlderConfigKeepsDefaultsForMissingKeys() throws {
@@ -47,9 +47,23 @@ final class AppConfigTests: XCTestCase {
         let config = try JSONDecoder().decode(AppConfig.self, from: json)
 
         XCTAssertFalse(config.enabled)
-        XCTAssertEqual(config.bindings.count, 8)
-        XCTAssertEqual(config.action(for: 4)?.system, .back)
+        XCTAssertEqual(config.bindings.map(\.button), [1, 2, 3])
+        XCTAssertFalse(config.action(for: 3)?.isBound ?? true)
         XCTAssertEqual(config.shortcutBindings, ShortcutBinding.defaults)
+    }
+
+    func testDecodingAConfigWithButtons4To8DropsThem() throws {
+        // Earlier builds listed buttons 4-8, which this mouse never sends. The
+        // rows are trimmed and the user's choices for buttons 1-3 survive.
+        let missionControl = MouseAction(kind: .system, system: .missionControl)
+        let stored = (1...8).map { button in
+            ButtonBinding(button: button, action: button == 3 ? missionControl : .none)
+        }
+        let json = try JSONEncoder().encode(["bindings": stored])
+        let config = try JSONDecoder().decode(AppConfig.self, from: json)
+
+        XCTAssertEqual(config.bindings.map(\.button), [1, 2, 3])
+        XCTAssertEqual(config.action(for: 3), missionControl)
     }
 
     func testDecodingOlderConfigAddsMissingShortcutDefaults() throws {
@@ -74,7 +88,7 @@ final class AppConfigTests: XCTestCase {
     func testCodableRoundTrip() throws {
         var config = AppConfig()
         config.enabled = false
-        config.setAction(MouseAction(kind: .openURL, text: "https://example.com"), for: 6)
+        config.setAction(MouseAction(kind: .openURL, text: "https://example.com"), for: 3)
 
         let data = try JSONEncoder().encode(config)
         let decoded = try JSONDecoder().decode(AppConfig.self, from: data)
@@ -177,9 +191,9 @@ final class AppConfigTests: XCTestCase {
 final class ButtonBindingTests: XCTestCase {
     func testNames() {
         XCTAssertEqual(ButtonBinding.defaults.map(\.name), [
-            "Left Click", "Right Click", "Middle Click",
-            "Button 4", "Button 5", "Button 6", "Button 7", "Button 8"
+            "Left Click", "Right Click", "Middle Click"
         ])
+        XCTAssertEqual(ButtonBinding(button: 4, action: .none).name, "Button 4")
         XCTAssertEqual(ButtonBinding(button: 9, action: .none).name, "Button 9")
     }
 
@@ -441,19 +455,19 @@ final class ConfigStoreTests: XCTestCase {
         let store = ConfigStore(directory: directory)
 
         XCTAssertFalse(store.hadStoredConfig)
-        XCTAssertEqual(store.config.action(for: 4)?.system, .back)
+        XCTAssertFalse(store.config.action(for: 3)?.isBound ?? true)
     }
 
     func testConfigIsPersistedAndReloaded() {
         let store = ConfigStore(directory: directory)
-        store.setAction(MouseAction(kind: .system, system: .spotlight), for: 6)
+        store.setAction(MouseAction(kind: .system, system: .spotlight), for: 3)
         store.config.enabled = false
 
         let reopened = ConfigStore(directory: directory)
 
         XCTAssertTrue(reopened.hadStoredConfig)
         XCTAssertFalse(reopened.config.enabled)
-        XCTAssertEqual(reopened.config.action(for: 6)?.system, .spotlight)
+        XCTAssertEqual(reopened.config.action(for: 3)?.system, .spotlight)
     }
 
     func testBindingForUnknownButtonFallsBackToUnbound() {

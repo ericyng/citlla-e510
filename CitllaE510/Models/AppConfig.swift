@@ -77,7 +77,17 @@ struct AppConfig: Codable, Equatable, Sendable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         enabled = try container.decodeIfPresent(Bool.self, forKey: .enabled) ?? true
-        bindings = try container.decodeIfPresent([ButtonBinding].self, forKey: .bindings) ?? ButtonBinding.defaults
+
+        // Older builds offered rows for buttons 4-8, which this mouse never
+        // sends. Drop those rows, then merge in any reported button the config
+        // is missing, so the Buttons tab always lists buttons 1-3 in order.
+        let stored = try container.decodeIfPresent([ButtonBinding].self, forKey: .bindings)
+            ?? ButtonBinding.defaults
+        var buttons = stored.filter { !ButtonBinding.retiredButtons.contains($0.button) }
+        for fallback in ButtonBinding.defaults where !buttons.contains(where: { $0.button == fallback.button }) {
+            buttons.append(fallback)
+        }
+        bindings = buttons.sorted { $0.button < $1.button }
 
         // A config written before a control was mapped has no row for it, so
         // merge in any defaults it is missing. Existing rows (and the actions

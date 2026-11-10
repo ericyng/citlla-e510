@@ -193,7 +193,7 @@ struct ButtonsSettingsView: View {
                     Text("This mouse sends its thumb buttons as ⌃← and ⌃→, and the ninth control as ⌃⌘F, instead of mouse buttons. They are remapped here, and only when the mouse itself sent the key — your keyboard still works normally.")
                 }
 
-                Section("Mouse Buttons") {
+                Section {
                     ForEach(config.config.bindings) { binding in
                         Button {
                             editing = .button(binding)
@@ -207,6 +207,10 @@ struct ButtonsSettingsView: View {
                         }
                         .buttonStyle(.plain)
                     }
+                } header: {
+                    Text("Mouse Buttons")
+                } footer: {
+                    Text("This mouse reports buttons 1–3 only. Its other controls arrive as keystrokes and are remapped under Mouse Keystrokes above.")
                 }
             }
             .listStyle(.inset)
@@ -251,7 +255,7 @@ struct ButtonsSettingsView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("The two thumb buttons will go back and forward. The mouse's other extra buttons will do nothing.")
+            Text("Every mouse button will pass through, and the two thumb buttons will go back and forward.")
         }
     }
 }

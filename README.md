@@ -40,7 +40,9 @@ apart from the same shortcuts on your keyboard. Out of the box:
 | Rear thumb button (sends `⌃←`) | Back (`⌘[`) |
 | Front thumb button (sends `⌃→`) | Forward (`⌘]`) |
 | Ninth control (sends `⌃⌘F`) | Pass through (keeps the factory full-screen toggle) |
-| Buttons 4–8 | Pass through (this mouse does not send them) |
+
+The mouse reports only buttons 1–3; the diagram's other controls send
+keystrokes or stay in firmware, so there are no rows for buttons 4–8.
 
 You can bind a control to:
 
@@ -62,7 +64,9 @@ Dock, and the media keys work because they are ordinary key events.
 Open **Settings → Mouse** to see the mouse's nine controls laid out as they are
 on the CITLLA diagram — each number is drawn on the render at the control it
 labels — click a row to change its binding, and **Test Buttons…** in the menu
-bar to see what each physical control actually sends.
+bar to see what each physical control actually sends. **Settings → Buttons**
+lists the same controls in two groups: the keys the mouse sends (`⌃←`, `⌃→`,
+`⌃⌘F`) and the three mouse buttons it reports.
 
 ## The mouse, as the manufacturer numbers it
 
@@ -273,9 +277,10 @@ Bindings are stored at:
 ~/Library/Application Support/CitllaE510/config.json
 ```
 
-`bindings` holds the mouse buttons, and `shortcutBindings` holds the keys the
-mouse sends (`⌃←`, `⌃→`, and any media key you add later). Delete that file (or
-use **Reset Defaults** in Settings) to start over.
+`bindings` holds the mouse buttons (1–3), and `shortcutBindings` holds the keys
+the mouse sends (`⌃←`, `⌃→`, and any media key you add later). Configs written
+by older builds with rows for buttons 4–8 are trimmed when they load. Delete
+that file (or use **Reset Defaults** in Settings) to start over.
 
 ## Limitations
 
@@ -286,6 +291,8 @@ use **Reset Defaults** in Settings) to start over.
   that receiver is added to the list.
 - Left and right click can be remapped, but doing so can make normal clicking
   awkward. The defaults leave them alone.
+- Only buttons 1–3 are remappable as mouse buttons. The diagram's other controls
+  send keystrokes (handled under **Mouse Keystrokes**) or stay in firmware.
 - Horizontal scroll/tilt (`AC Pan`) is not remapped in this version.
 - DPI, polling-rate, and Bluetooth/2.4G mode switches are firmware features and
   are not software-remappable.

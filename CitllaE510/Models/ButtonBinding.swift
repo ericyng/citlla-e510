@@ -34,19 +34,18 @@ struct ButtonBinding: Codable, Identifiable, Equatable, Sendable {
         }
     }
 
-    /// The default layout for the CITLLA PRO MAX E510's eight-button report.
-    /// The two side buttons become browser/Explorer back and forward; the
-    /// remaining extra buttons are left unbound until the user assigns them.
-    static let defaults: [ButtonBinding] = (1...8).map { button in
-        let action: MouseAction
-        switch button {
-        case 4:
-            action = MouseAction(kind: .system, system: .back)
-        case 5:
-            action = MouseAction(kind: .system, system: .forward)
-        default:
-            action = .none
-        }
-        return ButtonBinding(button: button, action: action)
+    /// The mouse buttons this hardware actually sends. Everything else on the
+    /// E510 (thumb buttons, the ninth control, DPI, tilt) arrives as a keystroke
+    /// or stays in firmware, so there are no rows for buttons 4-8.
+    static let reportedButtons: Set<Int> = [1, 2, 3]
+
+    /// Rows older builds created for buttons this mouse never sends. Loading an
+    /// old config drops them so the Buttons tab only lists real buttons.
+    static let retiredButtons: Set<Int> = [4, 5, 6, 7, 8]
+
+    /// The default layout: the three buttons the mouse reports, all passing
+    /// through until the user assigns an action.
+    static let defaults: [ButtonBinding] = reportedButtons.sorted().map {
+        ButtonBinding(button: $0, action: .none)
     }
 }
