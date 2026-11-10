@@ -578,4 +578,44 @@ final class ConfigStoreTests: XCTestCase {
         XCTAssertEqual(store.binding(for: 99).button, 99)
         XCTAssertFalse(store.binding(for: 99).action.isBound)
     }
+
+    // MARK: - Never writing the live config
+
+    func testTestRunsAreEphemeralAndDoNotUseTheRealDirectory() {
+        // The test host is the app bundle, so AppModel.shared really does build
+        // a ConfigStore during a test run. If that used the support directory,
+        // every test run (and every parallel worktree run) would rewrite the
+        // user's live config.
+        XCTAssertTrue(ConfigStore.isEphemeralLaunch)
+
+        let directory = ConfigStore.defaultDirectory(fileManager: .default)
+        XCTAssertNotEqual(directory.path, ConfigStore.supportDirectory?.path)
+        XCTAssertTrue(directory.path.contains("CitllaE510-"), "expected a throwaway directory, got \(directory.path)")
+    }
+
+    func testExplicitDirectoryOverrideWins() {
+        setenv("CITLLA_CONFIG_DIR", "/tmp/citlla-config-override", 1)
+        defer { unsetenv("CITLLA_CONFIG_DIR") }
+
+        XCTAssertEqual(
+            ConfigStore.defaultDirectory(fileManager: .default).path,
+            "/tmp/citlla-config-override"
+        )
+    }
+
+    func testExplicitOverrideDirectoryIsWhereTheConfigLands() throws {
+        setenv("CITLLA_CONFIG_DIR", "/tmp/citlla-config-override", 1)
+        defer {
+            unsetenv("CITLLA_CONFIG_DIR")
+            try? FileManager.default.removeItem(atPath: "/tmp/citlla-config-override")
+        }
+
+        let store = ConfigStore()
+        store.setAction(MouseAction(kind: .system, system: .mute), for: 3)
+
+        let fixture = URL(fileURLWithPath: "/tmp/citlla-config-override/config.json")
+        let data = try Data(contentsOf: fixture)
+        let decoded = try JSONDecoder().decode(AppConfig.self, from: data)
+        XCTAssertEqual(decoded.action(for: 3)?.system, .mute)
+    }
 }
