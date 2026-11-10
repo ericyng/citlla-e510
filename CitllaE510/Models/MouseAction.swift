@@ -273,6 +273,28 @@ struct MouseAction: Codable, Equatable, Sendable {
         }
     }
 
+    /// The action as a single step, so the executor has one input type.
+    var asStep: ActionStep {
+        ActionStep(
+            kind: kind,
+            system: system,
+            keyCode: keyCode,
+            modifiers: modifiers,
+            hasShortcut: hasShortcut,
+            click: click,
+            clickModifiers: clickModifiers,
+            text: text
+        )
+    }
+
+    /// The steps the runner should actually fire for this action.
+    ///
+    /// Only a `.sequence` has steps. Asking any other kind returns nothing, so a
+    /// stale step list left over from a previous edit can never run.
+    func normalizedSequence() -> [ActionStep] {
+        kind == .sequence ? steps.normalized() : []
+    }
+
     /// "Left Click", "⌘ Left Click", "⌥ Right Click", … — the mouse legend and
     /// the editor share this so a chord reads the same everywhere.
     static func describe(click: MouseClickKind, modifiers: UInt) -> String {
@@ -319,5 +341,26 @@ struct MouseAction: Codable, Equatable, Sendable {
         clickModifiers = try container.decodeIfPresent(UInt.self, forKey: .clickModifiers) ?? 0
         text = try container.decodeIfPresent(String.self, forKey: .text) ?? ""
         steps = try container.decodeIfPresent([ActionStep].self, forKey: .steps) ?? []
+    }
+}
+
+extension Array where Element == ActionStep {
+    /// A copy the runner can trust.
+    ///
+    /// Steps come from `config.json`, which is plain JSON and can be hand-edited,
+    /// so the runner cannot rely on the editor having enforced `SequenceLimits`.
+    /// This clamps each delay, drops steps that do nothing or that try to nest a
+    /// sequence (the editor cannot create either), and keeps only the first
+    /// `maxSteps` executable steps in order. Invalid entries are dropped rather
+    /// than made fatal: a broken macro should cost one step, not the config.
+    func normalized() -> [ActionStep] {
+        var result: [ActionStep] = []
+        result.reserveCapacity(SequenceLimits.maxSteps)
+        for var step in self where step.kind != .none && step.kind != .sequence {
+            guard result.count < SequenceLimits.maxSteps else { break }
+            step.delayMilliseconds = step.clampedDelay
+            result.append(step)
+        }
+        return result
     }
 }

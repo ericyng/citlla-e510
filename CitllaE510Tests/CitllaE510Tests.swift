@@ -619,3 +619,375 @@ final class ConfigStoreTests: XCTestCase {
         XCTAssertEqual(decoded.action(for: 3)?.system, .mute)
     }
 }
+
+// MARK: - Sequences
+
+/// Records what a run posts instead of posting real events, so tests can assert
+/// order, timing and that no modifier was left down.
+@MainActor
+final class FakeEventSink: EventSink {
+    struct Posted: Equatable {
+        enum Kind: Equatable {
+            case key(keyCode: UInt16, flags: UInt64, isDown: Bool)
+            case click(kind: MouseClickKind, flags: UInt64, isDown: Bool)
+            case system(SystemAction)
+            case openApp(String)
+            case openURL(String)
+            case shell(String)
+        }
+
+        let kind: Kind
+        let at: Date
+    }
+
+    /// The key codes that press and release ⌃⌥⇧⌘; anything else is "typed".
+    static let modifierKeyCodes: Set<UInt16> = [59, 58, 56, 55]
+
+    private(set) var posted: [Posted] = []
+    /// Called for every recorded event, so a test can cancel mid-run.
+    var onPost: (@MainActor (Posted) -> Void)?
+
+    var systems: [SystemAction] { posted.compactMap(\.kind.system) }
+    var openedApps: [String] { posted.compactMap(\.kind.openedApp) }
+    var openedURLs: [String] { posted.compactMap(\.kind.openedURL) }
+    var shellCommands: [String] { posted.compactMap(\.kind.shellCommand) }
+
+    /// Non-modifier keys pressed, in order: the keystrokes a run actually types.
+    var typedKeys: [UInt16] {
+        posted.compactMap { entry in
+            guard case .key(let keyCode, _, let isDown) = entry.kind,
+                  isDown,
+                  !Self.modifierKeyCodes.contains(keyCode) else { return nil }
+            return keyCode
+        }
+    }
+
+    /// Modifier key codes still down at the end. Empty is the only correct
+    /// answer after a run, cancelled or not.
+    var heldModifiers: Set<UInt16> {
+        var down = Set<UInt16>()
+        for entry in posted {
+            guard case .key(let keyCode, _, let isDown) = entry.kind,
+                  Self.modifierKeyCodes.contains(keyCode) else { continue }
+            if isDown {
+                down.insert(keyCode)
+            } else {
+                down.remove(keyCode)
+            }
+        }
+        return down
+    }
+
+    func postKey(_ keyCode: CGKeyCode, flags: CGEventFlags, isDown: Bool) {
+        record(.key(keyCode: keyCode, flags: flags.rawValue, isDown: isDown))
+    }
+
+    func postMouseClick(_ kind: MouseClickKind, flags: CGEventFlags, isDown: Bool) {
+        record(.click(kind: kind, flags: flags.rawValue, isDown: isDown))
+    }
+
+    func postSystem(_ action: SystemAction) { record(.system(action)) }
+    func openApp(at path: String) { record(.openApp(path)) }
+    func openURL(_ string: String) { record(.openURL(string)) }
+    func runShell(_ command: String) { record(.shell(command)) }
+
+    private func record(_ kind: Posted.Kind) {
+        let entry = Posted(kind: kind, at: Date())
+        posted.append(entry)
+        onPost?(entry)
+    }
+}
+
+private extension FakeEventSink.Posted.Kind {
+    var system: SystemAction? {
+        if case .system(let action) = self { return action }
+        return nil
+    }
+
+    var openedApp: String? {
+        if case .openApp(let path) = self { return path }
+        return nil
+    }
+
+    var openedURL: String? {
+        if case .openURL(let url) = self { return url }
+        return nil
+    }
+
+    var shellCommand: String? {
+        if case .shell(let command) = self { return command }
+        return nil
+    }
+}
+
+/// Collects `onStep` indices without capturing a mutable local in an escaping
+/// closure.
+@MainActor
+private final class StepRecorder {
+    private(set) var indices: [Int] = []
+    func record(_ index: Int) { indices.append(index) }
+}
+
+@MainActor
+final class MacroRunnerTests: XCTestCase {
+    private let command = NSEvent.ModifierFlags.command.rawValue
+    /// The same mask as the fake sink records it in `CGEventFlags`.
+    private var commandFlags: UInt64 { UInt64(command) }
+
+    private func steps(_ actions: [SystemAction]) -> [ActionStep] {
+        actions.map { ActionStep(kind: .system, system: $0) }
+    }
+
+    // MARK: Order and progress
+
+    func testSequenceFiresStepsInOrder() async throws {
+        let fake = FakeEventSink()
+        MacroRunner.run(
+            steps([.missionControl, .back, .forward]),
+            owner: .other("order"),
+            sink: fake
+        )
+
+        try await Task.sleep(for: .milliseconds(200))
+
+        XCTAssertEqual(fake.systems, [.missionControl, .back, .forward])
+    }
+
+    func testOnStepReportsEveryStepInOrder() async throws {
+        let fake = FakeEventSink()
+        let recorder = StepRecorder()
+        MacroRunner.run(
+            steps([.missionControl, .back, .forward]),
+            owner: .other("indices"),
+            onStep: { recorder.record($0) },
+            sink: fake
+        )
+
+        try await Task.sleep(for: .milliseconds(200))
+
+        XCTAssertEqual(recorder.indices, [0, 1, 2])
+        XCTAssertEqual(fake.systems.count, 3)
+    }
+
+    func testEachStepWaitsItsDelayFirst() async throws {
+        let fake = FakeEventSink()
+        let steps = [
+            ActionStep(kind: .system, system: .missionControl),
+            ActionStep(kind: .system, system: .back, delayMilliseconds: 120),
+            ActionStep(kind: .system, system: .forward)
+        ]
+        MacroRunner.run(steps, owner: .other("delay"), sink: fake)
+
+        try await Task.sleep(for: .milliseconds(450))
+
+        XCTAssertEqual(fake.systems, [.missionControl, .back, .forward])
+        let gap = fake.posted[1].at.timeIntervalSince(fake.posted[0].at)
+        XCTAssertGreaterThanOrEqual(gap, 0.10, "the 120 ms delay must be honoured (150 ms tolerance)")
+        XCTAssertLessThan(gap, 0.30)
+    }
+
+    // MARK: Cancellation
+
+    func testEmptySequenceIsANoOp() async throws {
+        let fake = FakeEventSink()
+        MacroRunner.run([], owner: .other("empty"), sink: fake)
+        ActionExecutor.perform(MouseAction(kind: .sequence), owner: .other("empty-action"))
+
+        try await Task.sleep(for: .milliseconds(80))
+
+        XCTAssertTrue(fake.posted.isEmpty)
+    }
+
+    func testSecondRunCancelsTheFirst() async throws {
+        let fake = FakeEventSink()
+        let owner = MacroOwner.other("restart")
+
+        MacroRunner.run(
+            [ActionStep(kind: .system, system: .back, delayMilliseconds: 200)],
+            owner: owner,
+            sink: fake
+        )
+        MacroRunner.run(
+            [ActionStep(kind: .system, system: .forward)],
+            owner: owner,
+            sink: fake
+        )
+
+        try await Task.sleep(for: .milliseconds(400))
+
+        XCTAssertEqual(fake.systems, [.forward], "the first run must not resume after the second starts")
+    }
+
+    func testCancelStopsBeforeTheNextStep() async throws {
+        let fake = FakeEventSink()
+        let owner = MacroOwner.other("cancel")
+        fake.onPost = { _ in MacroRunner.cancel(owner: owner) }
+
+        MacroRunner.run(
+            (0..<3).map { _ in ActionStep(kind: .system, system: .missionControl, delayMilliseconds: 20) },
+            owner: owner,
+            sink: fake
+        )
+
+        try await Task.sleep(for: .milliseconds(250))
+
+        XCTAssertEqual(fake.systems, [.missionControl], "cancelling must stop the steps that have not fired")
+    }
+
+    func testCancelDuringAStepStillReleasesModifiers() async throws {
+        let fake = FakeEventSink()
+        let owner = MacroOwner.other("chord-cancel")
+        // Cancel from inside the step, which is the worst case the executor has
+        // to survive: the press has already happened when the cancel arrives.
+        fake.onPost = { entry in
+            if case .click(_, _, let isDown) = entry.kind, isDown {
+                MacroRunner.cancel(owner: owner)
+            }
+        }
+
+        MacroRunner.run(
+            [ActionStep(kind: .mouseClick, click: .left, clickModifiers: command)],
+            owner: owner,
+            sink: fake
+        )
+
+        try await Task.sleep(for: .milliseconds(120))
+
+        XCTAssertTrue(fake.heldModifiers.isEmpty, "⌘ must be released even when the run is cancelled mid-click")
+        XCTAssertEqual(fake.posted.map(\.kind), [
+            .key(keyCode: 55, flags: commandFlags, isDown: true),
+            .click(kind: .left, flags: commandFlags, isDown: true),
+            .click(kind: .left, flags: commandFlags, isDown: false),
+            .key(keyCode: 55, flags: 0, isDown: false)
+        ])
+    }
+
+    func testCancelAllStopsEveryOwner() async throws {
+        let fake = FakeEventSink()
+        let slow = [ActionStep(kind: .system, system: .back, delayMilliseconds: 100)]
+
+        MacroRunner.run(slow, owner: .button(3), sink: fake)
+        MacroRunner.run(slow, owner: .shortcut("key-123-0"), sink: fake)
+        MacroRunner.cancelAll()
+
+        try await Task.sleep(for: .milliseconds(250))
+
+        XCTAssertTrue(fake.posted.isEmpty)
+    }
+
+    // MARK: Counting and caps
+
+    func testPlanDropsStepsBeyondTheTotalBudget() {
+        let steps = (0..<SequenceLimits.maxSteps).map { _ in
+            ActionStep(kind: .system, system: .back, delayMilliseconds: SequenceLimits.maxStepDelayMilliseconds)
+        }
+
+        let plan = MacroRunner.plan(for: steps)
+
+        // 500 ms each: six steps fit in 3000 ms, the seventh would not.
+        XCTAssertEqual(plan.count, 6)
+        XCTAssertEqual(plan.map(\.delayMilliseconds).reduce(0, +), SequenceLimits.maxTotalMilliseconds)
+        XCTAssertEqual(plan.map(\.index), [0, 1, 2, 3, 4, 5])
+        XCTAssertTrue(MacroRunner.plan(for: []).isEmpty)
+    }
+
+    func testNormalisationDropsEmptyAndNestedSteps() {
+        let steps = [
+            ActionStep(kind: .none),
+            ActionStep(kind: .system, system: .back),
+            ActionStep(kind: .sequence),
+            ActionStep(kind: .none),
+            ActionStep(kind: .system, system: .forward)
+        ]
+
+        XCTAssertEqual(steps.normalized().map(\.system), [.back, .forward])
+    }
+
+    func testNormalisationClampsDelayOnLoad() {
+        let step = ActionStep(kind: .system, system: .back, delayMilliseconds: 9_999)
+
+        XCTAssertEqual([step].normalized().first?.delayMilliseconds, SequenceLimits.maxStepDelayMilliseconds)
+        XCTAssertEqual(
+            [ActionStep(kind: .system, system: .back, delayMilliseconds: -50)].normalized().first?.delayMilliseconds,
+            0
+        )
+    }
+
+    func testNormalisationTruncatesToMaxSteps() {
+        let steps = (0..<12).map { _ in ActionStep(kind: .system, system: .back) }
+
+        XCTAssertEqual(steps.normalized().count, SequenceLimits.maxSteps)
+    }
+
+    func testNormalisedSequenceIgnoresStepsOnOtherKinds() {
+        let step = ActionStep(kind: .system, system: .back)
+
+        XCTAssertEqual(MouseAction(kind: .sequence, steps: [step]).normalizedSequence(), [step])
+        XCTAssertTrue(MouseAction(kind: .system, steps: [step]).normalizedSequence().isEmpty)
+    }
+
+    // MARK: Action executor
+
+    func testSequenceThroughActionExecutorUsesTheInjectedSink() async throws {
+        let fake = FakeEventSink()
+        ActionExecutor.sink = fake
+        let action = MouseAction(kind: .sequence, steps: [
+            ActionStep(kind: .keyboardShortcut, keyCode: 8, modifiers: command, hasShortcut: true),
+            ActionStep(kind: .system, system: .back)
+        ])
+
+        ActionExecutor.perform(action, owner: .other("sequence"))
+
+        try await Task.sleep(for: .milliseconds(250))
+
+        XCTAssertEqual(fake.typedKeys, [8])
+        XCTAssertEqual(fake.systems, [.back])
+        XCTAssertTrue(fake.heldModifiers.isEmpty)
+        ActionExecutor.sink = LiveEventSink()
+    }
+
+    func testExistingKindsStillPostTheirEvents() {
+        let fake = FakeEventSink()
+        ActionExecutor.sink = fake
+
+        ActionExecutor.perform(MouseAction(kind: .system, system: .missionControl), owner: .other("system"))
+        ActionExecutor.perform(
+            MouseAction(kind: .keyboardShortcut, keyCode: 8, modifiers: command, hasShortcut: true),
+            owner: .other("key")
+        )
+        ActionExecutor.perform(MouseAction(kind: .openApp, text: "/System/Applications/Calculator.app"), owner: .other("app"))
+        ActionExecutor.perform(MouseAction(kind: .openURL, text: "https://example.com"), owner: .other("url"))
+        ActionExecutor.perform(MouseAction(kind: .shellCommand, text: "echo hi"), owner: .other("shell"))
+        // Unbound and unrecorded actions must stay silent.
+        ActionExecutor.perform(.none, owner: .other("none"))
+        ActionExecutor.perform(MouseAction(kind: .keyboardShortcut, keyCode: 8), owner: .other("unrecorded"))
+
+        XCTAssertEqual(fake.systems, [.missionControl])
+        XCTAssertEqual(fake.typedKeys, [8])
+        XCTAssertEqual(fake.openedApps, ["/System/Applications/Calculator.app"])
+        XCTAssertEqual(fake.openedURLs, ["https://example.com"])
+        XCTAssertEqual(fake.shellCommands, ["echo hi"])
+        XCTAssertTrue(fake.heldModifiers.isEmpty, "the shortcut's ⌘ must be released")
+
+        ActionExecutor.sink = LiveEventSink()
+    }
+
+    func testChordClickHoldsItsModifierAndReleasesIt() {
+        let fake = FakeEventSink()
+        ActionExecutor.sink = fake
+
+        ActionExecutor.perform(
+            MouseAction(kind: .mouseClick, click: .left, clickModifiers: command),
+            owner: .other("chord")
+        )
+
+        XCTAssertEqual(fake.posted.map(\.kind), [
+            .key(keyCode: 55, flags: commandFlags, isDown: true),
+            .click(kind: .left, flags: commandFlags, isDown: true),
+            .click(kind: .left, flags: commandFlags, isDown: false),
+            .key(keyCode: 55, flags: 0, isDown: false)
+        ])
+
+        ActionExecutor.sink = LiveEventSink()
+    }
+}
