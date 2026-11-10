@@ -24,8 +24,10 @@
 		6EAC4883FECB1EF8F69200C5 /* CitllaE510Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A9937B140635034A1299AEA /* CitllaE510Tests.swift */; };
 		7209E147565B0D9802BE0F35 /* KeyCodeMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04B68752FB22CCD7845180C /* KeyCodeMap.swift */; };
 		87BE49B5408744E53F1FD856 /* HIDMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 201592ADEAE3A5917F727B66 /* HIDMonitor.swift */; };
+		8A142342F1B87C255F31CF52 /* ScrollController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0D906D7B9660BE552C400BA /* ScrollController.swift */; };
 		923E842895AA5E0A468FAD2C /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00ABB2AF04E36A50943424E1 /* AppConfig.swift */; };
 		95E515360B345145B7B94E44 /* PermissionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6982D083ACE01075FDB3ED4B /* PermissionsView.swift */; };
+		97B8975F36F2F9E77A5EBEE4 /* ScrollingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39271D60154EC6B23B507639 /* ScrollingView.swift */; };
 		9AC2DCE0DD625D0DCBFA42D3 /* CitllaE510App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9C5F11CC003595805F7B32 /* CitllaE510App.swift */; };
 		9E08A205F7E8E9CBDAB36AE3 /* PermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634C8CBEBB79BA7778AF716 /* PermissionManager.swift */; };
 		A08F9BEA02DA6D526F7002A0 /* TesterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 066B928BDA2DA559C23C724A /* TesterView.swift */; };
@@ -67,6 +69,7 @@
 		2250ECF637ADA329F1168D83 /* CitllaE510.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CitllaE510.entitlements; sourceTree = "<group>"; };
 		24D9C2BC846F00910BC0F2EF /* EventTapService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTapService.swift; sourceTree = "<group>"; };
 		2E3A08F7FD3B7B58B2D20F0B /* MouseReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseReceiver.swift; sourceTree = "<group>"; };
+		39271D60154EC6B23B507639 /* ScrollingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingView.swift; sourceTree = "<group>"; };
 		3EC3F329932290601CBDF00F /* ActionEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionEditorSheet.swift; sourceTree = "<group>"; };
 		49637FBEBBA9734BAD28AAD9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		4F10226975A078944357478D /* MacroRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroRunner.swift; sourceTree = "<group>"; };
@@ -93,6 +96,7 @@
 		D3CA9B7EBE42806FFCBCBDA6 /* ButtonBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonBinding.swift; sourceTree = "<group>"; };
 		D6A847E741DD8D726B5DC2BA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F04B68752FB22CCD7845180C /* KeyCodeMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCodeMap.swift; sourceTree = "<group>"; };
+		F0D906D7B9660BE552C400BA /* ScrollController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollController.swift; sourceTree = "<group>"; };
 		F3555498B3C43ECFEAE7B9EC /* ActionProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionProbe.swift; sourceTree = "<group>"; };
 		F38D77933A30FA87332C1C2F /* DiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsView.swift; sourceTree = "<group>"; };
 		FA09A42C2029743833F1A7E6 /* ConfigStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigStore.swift; sourceTree = "<group>"; };
@@ -152,6 +156,7 @@
 				4F10226975A078944357478D /* MacroRunner.swift */,
 				CE39E862CCCC9BEDBEA2882F /* MouseKeyTagger.swift */,
 				0634C8CBEBB79BA7778AF716 /* PermissionManager.swift */,
+				F0D906D7B9660BE552C400BA /* ScrollController.swift */,
 				AC981525B528C8C7D4620B18 /* Snapshot.swift */,
 				C211C951E4E989BD57C8A9DB /* WindowManager.swift */,
 			);
@@ -187,6 +192,7 @@
 				7EBEC1DD683557408C5403C5 /* MenuBarContent.swift */,
 				B6536CC397D62E4D6F4C6E3C /* MouseMapView.swift */,
 				6982D083ACE01075FDB3ED4B /* PermissionsView.swift */,
+				39271D60154EC6B23B507639 /* ScrollingView.swift */,
 				9AF2B1796042A24B29F49927 /* SettingsView.swift */,
 				98BED303DDB87F08A81BAC5B /* ShortcutRecorder.swift */,
 				066B928BDA2DA559C23C724A /* TesterView.swift */,
@@ -322,6 +328,8 @@
 				2ABA85FDBFA980BD44CEF8BA /* MouseReceiver.swift in Sources */,
 				9E08A205F7E8E9CBDAB36AE3 /* PermissionManager.swift in Sources */,
 				95E515360B345145B7B94E44 /* PermissionsView.swift in Sources */,
+				8A142342F1B87C255F31CF52 /* ScrollController.swift in Sources */,
+				97B8975F36F2F9E77A5EBEE4 /* ScrollingView.swift in Sources */,
 				08B87AAB9EC060B8D69407C0 /* SettingsView.swift in Sources */,
 				B156AA6CE3CACA12E72497A2 /* ShortcutBinding.swift in Sources */,
 				194049572FB71D47724B5058 /* ShortcutRecorder.swift in Sources */,

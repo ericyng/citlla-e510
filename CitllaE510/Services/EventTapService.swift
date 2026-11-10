@@ -21,6 +21,18 @@ final class EventTapService: ObservableObject {
     private var pressedShortcutKeys = Set<UInt16>()
     private var pressedConsumerKeys = Set<Int32>()
     private var hasPromptedForAccessibility = false
+    private var scrollController = ScrollController()
+
+    /// The event types the tap watches. Kept as a property so tests can assert
+    /// that a new type really is in the mask.
+    static let eventTypes: [CGEventType] = [
+        .leftMouseDown, .leftMouseUp,
+        .rightMouseDown, .rightMouseUp,
+        .otherMouseDown, .otherMouseUp,
+        .scrollWheel,
+        .keyDown, .keyUp,
+        SystemDefinedEvent.type
+    ]
 
     init(config: ConfigStore, tagger: MouseKeyTagger) {
         self.config = config
@@ -41,14 +53,7 @@ final class EventTapService: ObservableObject {
             return
         }
 
-        let eventTypes: [CGEventType] = [
-            .leftMouseDown, .leftMouseUp,
-            .rightMouseDown, .rightMouseUp,
-            .otherMouseDown, .otherMouseUp,
-            .keyDown, .keyUp,
-            SystemDefinedEvent.type
-        ]
-        let mask = eventTypes.reduce(CGEventMask(0)) { partial, type in
+        let mask = Self.eventTypes.reduce(CGEventMask(0)) { partial, type in
             partial | (CGEventMask(1) << CGEventMask(type.rawValue))
         }
 
@@ -97,6 +102,7 @@ final class EventTapService: ObservableObject {
         pressedButtons.removeAll()
         pressedShortcutKeys.removeAll()
         pressedConsumerKeys.removeAll()
+        scrollController = ScrollController()
         isRunning = false
     }
 
@@ -128,6 +134,8 @@ final class EventTapService: ObservableObject {
             return handleMouseDown(event)
         case .leftMouseUp, .rightMouseUp, .otherMouseUp:
             return handleMouseUp(event)
+        case .scrollWheel:
+            return handleScroll(event)
         case .keyDown:
             return handleKeyDown(event)
         case .keyUp:
@@ -161,6 +169,27 @@ final class EventTapService: ObservableObject {
             return nil
         }
         return Unmanaged.passUnretained(event)
+    }
+
+    // MARK: - Scrolling
+
+    /// Inverts scroll direction and turns the side wheel into actions, in
+    /// place. The same event object is handed back, so phase, momentum,
+    /// timestamp and every field we do not touch reach the app untouched, and
+    /// there is no re-post for the tap to see again.
+    private func handleScroll(_ event: CGEvent) -> Unmanaged<CGEvent>? {
+        let settings = config.config.scroll
+        switch scrollController.handle(event, settings: settings) {
+        case .passThrough, .rewritten:
+            return Unmanaged.passUnretained(event)
+        case .tilt(let direction, let fire):
+            // A bound tilt swallows the gesture, the same way a bound button
+            // swallows its click: the side wheel stops scrolling sideways.
+            if fire {
+                trigger(tilt: direction, action: settings.action(for: direction))
+            }
+            return nil
+        }
     }
 
     // MARK: - Keys the mouse sends
@@ -248,6 +277,12 @@ final class EventTapService: ObservableObject {
         lastAction = "\(shortcut.name) → \(action.summary)"
         logger.debug("Mouse key \(shortcut.name, privacy: .public) triggered \(action.summary, privacy: .public)")
         ActionExecutor.perform(action, owner: .shortcut(shortcut.id))
+    }
+
+    private func trigger(tilt direction: TiltDirection, action: MouseAction) {
+        lastAction = "\(direction.title) → \(action.summary)"
+        logger.debug("\(direction.title, privacy: .public) triggered \(action.summary, privacy: .public)")
+        ActionExecutor.perform(action, owner: direction.owner)
     }
 }
 
