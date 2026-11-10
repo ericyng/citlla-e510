@@ -90,7 +90,7 @@ done
 # One render per sidebar section. A section is only in this list once its view
 # exists; `snap` additionally checks that the binary really rendered it rather
 # than falling back to Overview.
-for section in overview buttons actions scrolling advanced permissions about; do
+for section in overview buttons actions profiles scrolling advanced permissions about; do
     snap "main-$section" --snapshot "$OUT/main-$section.png" --window main --section "$section" --scale 2
 done
 

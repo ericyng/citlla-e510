@@ -57,6 +57,7 @@ enum Snapshot {
                 .environmentObject(AppModel.shared.config)
                 .environmentObject(AppModel.shared.eventTap)
                 .environmentObject(AppModel.shared.loginItem)
+                .environmentObject(AppModel.shared.activeApp)
                 .environmentObject(state)
 
             let window = NSWindow(contentViewController: NSHostingController(rootView: root))

@@ -40,6 +40,8 @@ struct MainSectionContent: View {
             ButtonsSectionView()
         case .actions:
             ActionsSectionView()
+        case .profiles:
+            ProfilesView()
         case .scrolling:
             ScrollingView()
         case .advanced:
@@ -48,10 +50,6 @@ struct MainSectionContent: View {
             PermissionsView()
         case .about:
             AboutView()
-        case .profiles:
-            // Not in `MainSection.available` yet; the profiles track adds its
-            // view and appends its case there.
-            UnavailableSectionView(section: selection)
         }
     }
 }
@@ -183,6 +181,7 @@ struct AdvancedSectionView: View {
 struct OverviewView: View {
     @EnvironmentObject private var config: ConfigStore
     @EnvironmentObject private var eventTap: EventTapService
+    @EnvironmentObject private var activeApp: ActiveAppMonitor
     @EnvironmentObject private var windows: MainWindowState
     @AppStorage(AppPreferences.keepInDock) private var keepInDock = false
 
@@ -193,6 +192,16 @@ struct OverviewView: View {
     }
 
     private var totalControls: Int { MouseMap.controls.count }
+
+    /// The profile the tap will use for the next event, so a per-app override
+    /// is never silent. The monitor updates on app activation; no polling.
+    private var profileSummary: String {
+        guard let profile = config.config.profile(forBundleIdentifier: activeApp.frontmostBundleID) else {
+            return "Profile: Default"
+        }
+        let count = profile.overrideCount
+        return "Profile: \(profile.name) · \(count) override\(count == 1 ? "" : "s")"
+    }
 
     var body: some View {
         // Re-read the non-observable HID listener state every couple of seconds
@@ -306,7 +315,7 @@ struct OverviewView: View {
                     Text("\(boundControlCount) of \(totalControls) controls bound")
                         .font(.body.weight(.medium))
                     Spacer()
-                    Text("Profile: Default (all apps)")
+                    Text(profileSummary)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -385,25 +394,5 @@ struct OverviewView: View {
             return "Waiting for Input Monitoring"
         }
         return "Waiting for the receiver"
-    }
-}
-
-/// Only reachable if a section is selected that has no view yet; the sidebar
-/// never lists one.
-private struct UnavailableSectionView: View {
-    let section: MainSection
-
-    var body: some View {
-        VStack(spacing: 10) {
-            Image(systemName: section.symbolName)
-                .font(.system(size: 38, weight: .light))
-                .foregroundStyle(.secondary)
-            Text(section.title)
-                .font(.title2.weight(.semibold))
-            Text("This section is not available in this build yet.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

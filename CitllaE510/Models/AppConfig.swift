@@ -89,9 +89,64 @@ struct AppConfig: Codable, Equatable, Sendable {
     var shortcutBindings: [ShortcutBinding] = ShortcutBinding.defaults
     /// Scroll direction and side wheel. Independent of `bindings`.
     var scroll: ScrollSettings = ScrollSettings()
+    /// Per-app overrides. An empty list means every app uses the global map.
+    /// Deliberately untouched by `resetToDefaults()`.
+    var profiles: [AppProfile] = []
 
-    func action(for button: Int) -> MouseAction? {
-        bindings.first(where: { $0.button == button })?.action
+    // Declared explicitly because `decodeProfiles` names the type in its
+    // signature; the synthesized one is not visible there.
+    private enum CodingKeys: String, CodingKey {
+        case enabled
+        case bindings
+        case shortcutBindings
+        case scroll
+        case profiles
+    }
+
+    /// The app's own bundle identifier.
+    ///
+    /// A profile for Citlla E510 itself must never apply: opening its window
+    /// would then change how the mouse behaves *inside* that window, which is
+    /// exactly the surprise profiles are meant to avoid.
+    static let ownBundleIdentifier = "com.ericng.citllae510"
+
+    // MARK: - Profiles
+
+    /// The enabled profile for a frontmost app, if there is one.
+    ///
+    /// Absent or unknown bundle identifiers, disabled profiles and the app's
+    /// own bundle all resolve to `nil`, which means "use the global map".
+    func profile(forBundleIdentifier bundleID: String?) -> AppProfile? {
+        guard let bundleID, bundleID != Self.ownBundleIdentifier else { return nil }
+        return profiles.first { $0.enabled && $0.id == bundleID }
+    }
+
+    /// Adds a profile for an app, replacing any existing rule for it. Used by
+    /// the Profiles section when an app is chosen.
+    mutating func setProfile(_ profile: AppProfile) {
+        if let index = profiles.firstIndex(where: { $0.id == profile.id }) {
+            profiles[index] = profile
+        } else {
+            profiles.append(profile)
+        }
+    }
+
+    mutating func removeProfile(id: String) {
+        profiles.removeAll { $0.id == id }
+    }
+
+    // MARK: - Resolution
+
+    /// The action a button should run, honouring an enabled profile for the
+    /// frontmost app and falling back to the global map.
+    ///
+    /// The `frontmostBundleID` parameter defaults to `nil` so every existing
+    /// caller keeps the plain global lookup.
+    func action(for button: Int, frontmostBundleID: String? = nil) -> MouseAction? {
+        if let override = profile(forBundleIdentifier: frontmostBundleID)?.buttonAction(for: button) {
+            return override
+        }
+        return bindings.first(where: { $0.button == button })?.action
     }
 
     mutating func setAction(_ action: MouseAction, for button: Int) {
@@ -107,18 +162,35 @@ struct AppConfig: Codable, Equatable, Sendable {
     }
 
     /// The binding for a keyboard event the mouse sent, if there is one.
-    func action(forKeyboardKeyCode keyCode: UInt16, modifiers: UInt) -> (ShortcutBinding, MouseAction)? {
+    ///
+    /// An enabled profile's override for the matched control wins; otherwise
+    /// the global action is returned. The binding itself is always the global
+    /// one, because the trigger is the same key whatever the app.
+    func action(
+        forKeyboardKeyCode keyCode: UInt16,
+        modifiers: UInt,
+        frontmostBundleID: String? = nil
+    ) -> (ShortcutBinding, MouseAction)? {
         guard let binding = shortcutBindings.first(where: {
             $0.matches(keyCode: keyCode, modifiers: modifiers)
         }) else { return nil }
+        if let override = profile(forBundleIdentifier: frontmostBundleID)?.shortcutAction(for: binding.id) {
+            return (binding, override)
+        }
         return (binding, binding.action)
     }
 
     /// The binding for a consumer key the mouse sent, if there is one.
-    func action(forConsumerKey key: Int32) -> (ShortcutBinding, MouseAction)? {
+    func action(
+        forConsumerKey key: Int32,
+        frontmostBundleID: String? = nil
+    ) -> (ShortcutBinding, MouseAction)? {
         guard let binding = shortcutBindings.first(where: {
             $0.source == .consumer && $0.consumerKey == key
         }) else { return nil }
+        if let override = profile(forBundleIdentifier: frontmostBundleID)?.shortcutAction(for: binding.id) {
+            return (binding, override)
+        }
         return (binding, binding.action)
     }
 
@@ -156,6 +228,10 @@ struct AppConfig: Codable, Equatable, Sendable {
         // Scrolling is deliberately untouched: the reset lives on the Buttons
         // page and says it resets buttons. The Scrolling page has its own
         // switches, and turning those off is the way back to stock scrolling.
+        //
+        // Profiles are untouched for the same reason, and more strongly: they
+        // are not buttons, they can hold a lot of work, and a user who resets
+        // the button map does not expect their per-app rules to disappear.
     }
 
     init() {}
@@ -190,5 +266,38 @@ struct AppConfig: Codable, Equatable, Sendable {
         // key, and must load with stock scrolling rather than fail and reset
         // every binding.
         scroll = try container.decodeIfPresent(ScrollSettings.self, forKey: .scroll) ?? ScrollSettings()
+
+        // Configs written before profiles existed have no `profiles` key.
+        // Decode lossily: one malformed profile is dropped rather than failing
+        // the whole file, which `ConfigStore` would treat as "reset everything".
+        profiles = Self.decodeProfiles(from: container)
+    }
+
+    /// Reads the profile list without letting a single bad entry reset the
+    /// config. Each element is decoded through `LossyProfile`, which never
+    /// throws, so the unkeyed container always advances and one malformed rule
+    /// costs only itself.
+    private static func decodeProfiles(
+        from container: KeyedDecodingContainer<CodingKeys>
+    ) -> [AppProfile] {
+        guard var list = try? container.nestedUnkeyedContainer(forKey: .profiles) else { return [] }
+        var result: [AppProfile] = []
+        while !list.isAtEnd {
+            guard let wrapper = try? list.decode(LossyProfile.self) else { break }
+            if let profile = wrapper.profile {
+                result.append(profile)
+            }
+        }
+        return result
+    }
+
+    /// `AppProfile`, or `nil` for an element that is not one (a number, a
+    /// string, an object missing the required shape). Never throws.
+    private struct LossyProfile: Decodable {
+        let profile: AppProfile?
+
+        init(from decoder: Decoder) throws {
+            profile = try? AppProfile(from: decoder)
+        }
     }
 }

@@ -20,6 +20,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let model = AppModel.shared
 
+        // Cache the frontmost app before the tap starts; it updates itself on
+        // every activation from here on.
+        model.activeApp.start()
+
         // With *Keep in Dock* on, the app is a normal Dock app from launch even
         // before a window exists. Otherwise this is a no-op: the app stays
         // `.accessory` and only the menu bar icon is visible.
