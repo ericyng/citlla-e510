@@ -81,7 +81,9 @@ struct ActionEditorSheet: View {
 
             Form {
                 Picker("Action", selection: $draft.kind) {
-                    ForEach(ActionKind.allCases) { kind in
+                    // `.sequence` is intentionally absent until the step editor
+                    // lands; the picker must never offer an option with no UI.
+                    ForEach(ActionKind.editableCases) { kind in
                         Label(kind.title, systemImage: kind.symbolName).tag(kind)
                     }
                 }
@@ -153,6 +155,12 @@ struct ActionEditorSheet: View {
                         .font(.system(.body, design: .monospaced))
                     Text("Runs through /bin/zsh -lc. Only use commands you trust.")
                         .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                case .sequence:
+                    // Reachable only from a config written by a later build.
+                    Text("This version cannot edit sequences.")
+                        .font(.callout)
                         .foregroundStyle(.secondary)
                 }
 

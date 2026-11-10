@@ -190,7 +190,7 @@ final class EventTapService: ObservableObject {
         }
 
         pressedShortcutKeys.insert(keyCode)
-        trigger(shortcut: binding.name, action: action)
+        trigger(shortcut: binding, action: action)
         return nil
     }
 
@@ -232,7 +232,7 @@ final class EventTapService: ObservableObject {
             return Unmanaged.passUnretained(event)
         }
         pressedConsumerKeys.insert(key)
-        trigger(shortcut: binding.name, action: action)
+        trigger(shortcut: binding, action: action)
         return nil
     }
 
@@ -241,13 +241,13 @@ final class EventTapService: ObservableObject {
     private func trigger(button: Int, action: MouseAction) {
         lastAction = "Button \(button) → \(action.summary)"
         logger.debug("Button \(button, privacy: .public) triggered \(action.summary, privacy: .public)")
-        ActionExecutor.perform(action)
+        ActionExecutor.perform(action, owner: .button(button))
     }
 
-    private func trigger(shortcut: String, action: MouseAction) {
-        lastAction = "\(shortcut) → \(action.summary)"
-        logger.debug("Mouse key \(shortcut, privacy: .public) triggered \(action.summary, privacy: .public)")
-        ActionExecutor.perform(action)
+    private func trigger(shortcut: ShortcutBinding, action: MouseAction) {
+        lastAction = "\(shortcut.name) → \(action.summary)"
+        logger.debug("Mouse key \(shortcut.name, privacy: .public) triggered \(action.summary, privacy: .public)")
+        ActionExecutor.perform(action, owner: .shortcut(shortcut.id))
     }
 }
 

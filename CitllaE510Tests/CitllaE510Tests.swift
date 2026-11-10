@@ -253,6 +253,108 @@ final class MouseActionTests: XCTestCase {
     }
 }
 
+/// The frozen shapes every worktree track builds against.
+final class ActionContractTests: XCTestCase {
+    private let command = NSEvent.ModifierFlags.command.rawValue
+    private let option = NSEvent.ModifierFlags.option.rawValue
+
+    // MARK: Chord support on a single click
+
+    func testClickChordSummaryAndCarriedField() {
+        let action = MouseAction(kind: .mouseClick, click: .left, clickModifiers: command)
+        XCTAssertEqual(action.summary, "⌘ Left Click")
+        XCTAssertEqual(action.clickModifiers, command)
+
+        let decoded = try? JSONDecoder().decode(
+            MouseAction.self,
+            from: JSONEncoder().encode(action)
+        )
+        XCTAssertEqual(decoded?.clickModifiers, command, "the chord must survive a config round-trip")
+    }
+
+    // MARK: Sequence shape
+
+    func testSequenceIsUnboundUntilItHasSteps() {
+        XCTAssertFalse(MouseAction(kind: .sequence).isBound, "an empty sequence must pass through")
+
+        let steps = [ActionStep(kind: .system, system: .missionControl)]
+        XCTAssertTrue(MouseAction(kind: .sequence, steps: steps).isBound)
+    }
+
+    func testSequenceSummaryListsStepsInOrder() {
+        let action = MouseAction(kind: .sequence, steps: [
+            ActionStep(kind: .keyboardShortcut, keyCode: 8, modifiers: command, hasShortcut: true), // ⌘C
+            ActionStep(kind: .keyboardShortcut, keyCode: 9, modifiers: command, hasShortcut: true)  // ⌘V
+        ])
+        XCTAssertEqual(action.summary, "⌘C → ⌘V")
+    }
+
+    func testLongSequenceSummaryIsTruncated() {
+        let steps = (0..<5).map { _ in ActionStep(kind: .system, system: .back) }
+        XCTAssertEqual(MouseAction(kind: .sequence, steps: steps).summary, "Back → Back → … (5 steps)")
+    }
+
+    func testStepDelayIsClampedToTheLimit() {
+        XCTAssertEqual(ActionStep(delayMilliseconds: -20).clampedDelay, 0)
+        XCTAssertEqual(ActionStep(delayMilliseconds: 250).clampedDelay, 250)
+        XCTAssertEqual(ActionStep(delayMilliseconds: 99_999).clampedDelay, SequenceLimits.maxStepDelayMilliseconds)
+    }
+
+    func testStepCannotBeASequence() {
+        XCTAssertFalse(ActionKind.stepCases.contains(.sequence))
+        XCTAssertFalse(ActionKind.editableCases.contains(.sequence), "the picker must not offer a kind with no editor")
+    }
+
+    // MARK: Config compatibility
+
+    func testDecodingAPreSequenceActionKeepsItsFields() throws {
+        // Exactly what a config written by the shipped build looks like: no
+        // clickModifiers, no steps.
+        let json = Data(#"{"click":2,"hasShortcut":false,"keyCode":0,"kind":"mouseClick","modifiers":0,"system":"missionControl","text":""}"#.utf8)
+        let action = try JSONDecoder().decode(MouseAction.self, from: json)
+
+        XCTAssertEqual(action.kind, .mouseClick)
+        XCTAssertEqual(action.click, .middle)
+        XCTAssertEqual(action.clickModifiers, 0)
+        XCTAssertEqual(action.steps, [])
+    }
+
+    func testDecodingAnEmptyObjectGivesTheDefaults() throws {
+        let action = try JSONDecoder().decode(MouseAction.self, from: Data("{}".utf8))
+
+        XCTAssertEqual(action, MouseAction.none)
+        XCTAssertEqual(action.clickModifiers, 0)
+        XCTAssertEqual(action.steps, [])
+    }
+
+    func testOldConfigStillLoadsWithItsBindings() throws {
+        let json = Data(#"""
+        {
+          "enabled": true,
+          "bindings": [
+            {"button": 3, "action": {"kind": "system", "system": "missionControl"}}
+          ],
+          "shortcutBindings": [
+            {"id": "key-123-262144", "source": "keyboard", "keyCode": 123, "modifiers": 262144, "consumerKey": 0,
+             "action": {"kind": "system", "system": "back"}}
+          ]
+        }
+        """#.utf8)
+        let config = try JSONDecoder().decode(AppConfig.self, from: json)
+
+        XCTAssertEqual(config.action(for: 3)?.system, .missionControl)
+        XCTAssertEqual(config.action(forKeyboardKeyCode: 123, modifiers: 262144)?.1.system, .back)
+    }
+
+    // MARK: Ownership
+
+    func testMacroOwnerDistinguishesControls() {
+        XCTAssertNotEqual(MacroOwner.button(3), MacroOwner.button(4))
+        XCTAssertNotEqual(MacroOwner.button(3), MacroOwner.shortcut("button-3"))
+        XCTAssertEqual(MacroOwner.shortcut("key-123-0"), MacroOwner.shortcut("key-123-0"))
+    }
+}
+
 final class MouseMapTests: XCTestCase {
     func testEveryCalloutFromTheDiagramIsPresent() {
         XCTAssertEqual(MouseMap.controls.map(\.number), Array(1...9))

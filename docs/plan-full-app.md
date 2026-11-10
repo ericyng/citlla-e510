@@ -183,11 +183,24 @@ to `/Applications` or touches TCC (see §6).
 
 ### T0 — Contract (main session, no worktree)
 
-Files: `Models/MouseAction.swift`, `Models/AppProfile.swift` (types only),
-`Views/MainSection.swift` (sidebar enum), `Services/MacroRunner.swift` (API
-signature + TODO bodies), tests compiled against defaults.
+Files: `Models/MouseAction.swift`, `Models/MacroOwner.swift`,
+`Models/AppProfile.swift` (types only), `Views/MainSection.swift` (sidebar enum),
+`Services/MacroRunner.swift` (API signature + TODO bodies), `Services/ActionExecutor.swift`
+(`perform(_:owner:)` plus the `.sequence` hand-off), `Services/EventTapService.swift`
+(passes the owner), tests compiled against the frozen shapes.
 
-Acceptance: project builds, existing 48 tests pass, no behaviour change.
+Shipped early because it was small and self-contained: **chords**. `clickModifiers`
+is stored, `MouseAction.describe(click:modifiers:)` gives "⌘ Left Click", and
+`ActionExecutor` presses the modifiers for real around the click (`withModifiers`,
+shared with `postKey`) and stamps them on the click events. Until the editor
+row lands there is no UI for it, but the model and executor are done.
+
+Also required for compatibility: `MouseAction` has a hand-written `init(from:)`
+using `decodeIfPresent`. The synthesized decoder would have rejected every
+config saved before `clickModifiers`/`steps` existed, and `ConfigStore` swallows
+that error by falling back to defaults — a silent reset of all bindings.
+
+Acceptance: project builds, all tests pass, no behaviour change beyond chords.
 This commit is the base for every worktree so parallel tracks cannot drift on
 types.
 
@@ -197,10 +210,10 @@ Files owned: `Models/MouseAction.swift`, `Services/ActionExecutor.swift`,
 `Services/MacroRunner.swift`, `Utilities/KeyCodeMap.swift` (if needed),
 `CitllaE510Tests/`.
 
-- Chords: `clickModifiers`, modifier press/release around clicks.
-- Sequence: decode, clamp, flatten, execute with delays and cancellation.
-- `EventSink` seam and tests: order, delay, cancel, modifier release, summary.
-- Keep `perform` working for every existing action.
+- Sequence: flatten on load, clamp to `SequenceLimits`, execute with delays.
+- Cancellation per `MacroOwner`; modifier release guaranteed on cancel.
+- `EventSink` seam and tests: order, delay, cancel, modifier release.
+- Keep `perform` working for every existing action, including chords.
 
 Acceptance: ~15 new tests; a 3-step sequence runs in the tester.
 

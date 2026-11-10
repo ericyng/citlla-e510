@@ -10,11 +10,13 @@
 		08B87AAB9EC060B8D69407C0 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF2B1796042A24B29F49927 /* SettingsView.swift */; };
 		194049572FB71D47724B5058 /* ShortcutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98BED303DDB87F08A81BAC5B /* ShortcutRecorder.swift */; };
 		2ABA85FDBFA980BD44CEF8BA /* MouseReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E3A08F7FD3B7B58B2D20F0B /* MouseReceiver.swift */; };
+		2BE913354FC40C7D7671BF03 /* MainSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C46DC2EF8E7B7CDAFECCF6 /* MainSection.swift */; };
 		2C9C205939B7B7BEECFCFBA0 /* Snapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC981525B528C8C7D4620B18 /* Snapshot.swift */; };
 		30EEE01145EE4867BCFC95F7 /* ConfigStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA09A42C2029743833F1A7E6 /* ConfigStore.swift */; };
 		334929FFB478DE7FEFABA637 /* ActionProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3555498B3C43ECFEAE7B9EC /* ActionProbe.swift */; };
 		34D1FF44C52A8681B04EA92C /* ButtonBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3CA9B7EBE42806FFCBCBDA6 /* ButtonBinding.swift */; };
 		3E9D44001352D3039F0EAE20 /* StatusProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = A08B127B7FC4E412E895F7F0 /* StatusProbe.swift */; };
+		5062A7858E7DC25E4CFDB31C /* MacroOwner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D2682381E88772E82E377D9 /* MacroOwner.swift */; };
 		51CD7D0179E59DAE5A823702 /* DiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F38D77933A30FA87332C1C2F /* DiagnosticsView.swift */; };
 		538B30846B678CB52472B818 /* EventTapService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9C2BC846F00910BC0F2EF /* EventTapService.swift */; };
 		6427BD8250E409C4F78786C7 /* LoginItemManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 762303EC4CBD6433FA135A6C /* LoginItemManager.swift */; };
@@ -34,9 +36,11 @@
 		B3EDDDEC8BEBFA3AE08523B7 /* MouseAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17D90DB6A59BAFC9BE0DB5E2 /* MouseAction.swift */; };
 		BD4FA991A7917918870BD28C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49637FBEBBA9734BAD28AAD9 /* AppDelegate.swift */; };
 		BDC37F94F2A640AB0443AF06 /* ActionExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE6F64D5A5906F3E5AF44204 /* ActionExecutor.swift */; };
+		C07167D922BB07EA11B03B6F /* MacroRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F10226975A078944357478D /* MacroRunner.swift */; };
 		C45DAAB448CBA596174E839B /* MouseMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 023A3D01602E214FF7939349 /* MouseMap.swift */; };
 		C785CAEA633351C6E510F084 /* MouseMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6536CC397D62E4D6F4C6E3C /* MouseMapView.swift */; };
 		CA663AFF15A8BEE829002823 /* ActionEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EC3F329932290601CBDF00F /* ActionEditorSheet.swift */; };
+		CF834E45C4FDC6C475F26722 /* AppProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6970CA591BAF57B1C48E287E /* AppProfile.swift */; };
 		D6FF0B8A56BF901E35B421BF /* MenuBarContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EBEC1DD683557408C5403C5 /* MenuBarContent.swift */; };
 		E8BE69C58261775A813728D5 /* DockControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81A6CBC2033F0EA390CEFA6C /* DockControl.swift */; };
 		F33574C182465AABA6E47549 /* WindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C211C951E4E989BD57C8A9DB /* WindowManager.swift */; };
@@ -65,14 +69,18 @@
 		2E3A08F7FD3B7B58B2D20F0B /* MouseReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseReceiver.swift; sourceTree = "<group>"; };
 		3EC3F329932290601CBDF00F /* ActionEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionEditorSheet.swift; sourceTree = "<group>"; };
 		49637FBEBBA9734BAD28AAD9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		4F10226975A078944357478D /* MacroRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroRunner.swift; sourceTree = "<group>"; };
 		558CBB6387AB4B290173F220 /* ButtonTester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonTester.swift; sourceTree = "<group>"; };
 		5A9937B140635034A1299AEA /* CitllaE510Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CitllaE510Tests.swift; sourceTree = "<group>"; };
+		6970CA591BAF57B1C48E287E /* AppProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppProfile.swift; sourceTree = "<group>"; };
 		6982D083ACE01075FDB3ED4B /* PermissionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsView.swift; sourceTree = "<group>"; };
 		759AA247C79D868EB162048D /* CitllaE510.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CitllaE510.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		762303EC4CBD6433FA135A6C /* LoginItemManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemManager.swift; sourceTree = "<group>"; };
+		77C46DC2EF8E7B7CDAFECCF6 /* MainSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainSection.swift; sourceTree = "<group>"; };
 		7D208ADFCF90FF812179883B /* ShortcutBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutBinding.swift; sourceTree = "<group>"; };
 		7EBEC1DD683557408C5403C5 /* MenuBarContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContent.swift; sourceTree = "<group>"; };
 		81A6CBC2033F0EA390CEFA6C /* DockControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockControl.swift; sourceTree = "<group>"; };
+		8D2682381E88772E82E377D9 /* MacroOwner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroOwner.swift; sourceTree = "<group>"; };
 		98BED303DDB87F08A81BAC5B /* ShortcutRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutRecorder.swift; sourceTree = "<group>"; };
 		9AF2B1796042A24B29F49927 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		9F9C5F11CC003595805F7B32 /* CitllaE510App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CitllaE510App.swift; sourceTree = "<group>"; };
@@ -105,8 +113,10 @@
 			isa = PBXGroup;
 			children = (
 				00ABB2AF04E36A50943424E1 /* AppConfig.swift */,
+				6970CA591BAF57B1C48E287E /* AppProfile.swift */,
 				D3CA9B7EBE42806FFCBCBDA6 /* ButtonBinding.swift */,
 				FA09A42C2029743833F1A7E6 /* ConfigStore.swift */,
+				8D2682381E88772E82E377D9 /* MacroOwner.swift */,
 				17D90DB6A59BAFC9BE0DB5E2 /* MouseAction.swift */,
 				023A3D01602E214FF7939349 /* MouseMap.swift */,
 				2E3A08F7FD3B7B58B2D20F0B /* MouseReceiver.swift */,
@@ -139,6 +149,7 @@
 				24D9C2BC846F00910BC0F2EF /* EventTapService.swift */,
 				201592ADEAE3A5917F727B66 /* HIDMonitor.swift */,
 				762303EC4CBD6433FA135A6C /* LoginItemManager.swift */,
+				4F10226975A078944357478D /* MacroRunner.swift */,
 				CE39E862CCCC9BEDBEA2882F /* MouseKeyTagger.swift */,
 				0634C8CBEBB79BA7778AF716 /* PermissionManager.swift */,
 				AC981525B528C8C7D4620B18 /* Snapshot.swift */,
@@ -172,6 +183,7 @@
 				A435E2C411FA9D75EF171EB5 /* AboutView.swift */,
 				3EC3F329932290601CBDF00F /* ActionEditorSheet.swift */,
 				F38D77933A30FA87332C1C2F /* DiagnosticsView.swift */,
+				77C46DC2EF8E7B7CDAFECCF6 /* MainSection.swift */,
 				7EBEC1DD683557408C5403C5 /* MenuBarContent.swift */,
 				B6536CC397D62E4D6F4C6E3C /* MouseMapView.swift */,
 				6982D083ACE01075FDB3ED4B /* PermissionsView.swift */,
@@ -288,6 +300,7 @@
 				334929FFB478DE7FEFABA637 /* ActionProbe.swift in Sources */,
 				923E842895AA5E0A468FAD2C /* AppConfig.swift in Sources */,
 				BD4FA991A7917918870BD28C /* AppDelegate.swift in Sources */,
+				CF834E45C4FDC6C475F26722 /* AppProfile.swift in Sources */,
 				34D1FF44C52A8681B04EA92C /* ButtonBinding.swift in Sources */,
 				64944C159F6A1B16D0D5BD24 /* ButtonTester.swift in Sources */,
 				9AC2DCE0DD625D0DCBFA42D3 /* CitllaE510App.swift in Sources */,
@@ -298,6 +311,9 @@
 				87BE49B5408744E53F1FD856 /* HIDMonitor.swift in Sources */,
 				7209E147565B0D9802BE0F35 /* KeyCodeMap.swift in Sources */,
 				6427BD8250E409C4F78786C7 /* LoginItemManager.swift in Sources */,
+				5062A7858E7DC25E4CFDB31C /* MacroOwner.swift in Sources */,
+				C07167D922BB07EA11B03B6F /* MacroRunner.swift in Sources */,
+				2BE913354FC40C7D7671BF03 /* MainSection.swift in Sources */,
 				D6FF0B8A56BF901E35B421BF /* MenuBarContent.swift in Sources */,
 				B3EDDDEC8BEBFA3AE08523B7 /* MouseAction.swift in Sources */,
 				A2F226A9E7C41F55C828D939 /* MouseKeyTagger.swift in Sources */,

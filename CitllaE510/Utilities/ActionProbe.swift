@@ -64,7 +64,7 @@ enum ActionProbe {
             // Give the run loop a moment so the app is a normal, fully
             // launched process before it posts anything.
             try? await Task.sleep(for: .milliseconds(500))
-            ActionExecutor.perform(MouseAction(kind: .system, system: system))
+            ActionExecutor.perform(MouseAction(kind: .system, system: system), owner: .other("perform"))
             try? await Task.sleep(for: .milliseconds(1500))
             exit(0)
         }

@@ -59,14 +59,20 @@ enum KeyCodeMap {
         names[keyCode] ?? "Key \(keyCode)"
     }
 
-    static func describe(keyCode: UInt16, modifiers: UInt) -> String {
+    /// The modifier glyphs for a modifier set, in the order macOS writes them.
+    /// `⌃⌥⇧⌘` — used by shortcuts and by clicks.
+    static func modifierSymbols(_ modifiers: UInt) -> String {
         let flags = NSEvent.ModifierFlags(rawValue: modifiers)
         var result = ""
         if flags.contains(.control) { result += "⌃" }
         if flags.contains(.option) { result += "⌥" }
         if flags.contains(.shift) { result += "⇧" }
         if flags.contains(.command) { result += "⌘" }
-        return result + name(for: keyCode)
+        return result
+    }
+
+    static func describe(keyCode: UInt16, modifiers: UInt) -> String {
+        modifierSymbols(modifiers) + name(for: keyCode)
     }
 
     /// NSEvent and CGEvent use the same bit values for the four standard

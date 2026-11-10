@@ -6,7 +6,10 @@ import os
 enum ActionExecutor {
     private static let logger = Logger(subsystem: "com.ericng.citillae510", category: "actions")
 
-    static func perform(_ action: MouseAction) {
+    /// Runs one action. Called on the main actor from the event tap, which must
+    /// return immediately — anything that waits is handed to `MacroRunner`.
+    @MainActor
+    static func perform(_ action: MouseAction, owner: MacroOwner) {
         guard action.isBound else { return }
 
         switch action.kind {
@@ -21,7 +24,7 @@ enum ActionExecutor {
             postKey(action.keyCode, flags: KeyCodeMap.cgFlags(from: action.modifiers))
 
         case .mouseClick:
-            postClick(action.click)
+            postClick(action.click, modifiers: action.clickModifiers)
 
         case .openApp:
             openApp(at: action.text)
@@ -31,6 +34,10 @@ enum ActionExecutor {
 
         case .shellCommand:
             runShell(action.text)
+
+        case .sequence:
+            // Handed off so the tap callback returns immediately.
+            MacroRunner.run(action.steps, owner: owner)
         }
     }
 
@@ -75,14 +82,17 @@ enum ActionExecutor {
 
     // MARK: - Synthetic events
 
-    /// Posts a keystroke, pressing the modifier keys for real around it.
+    /// Holds `flags` down for real while `body` runs, then releases them.
     ///
-    /// Setting `CGEventFlags` on a key event is enough for an application's own
+    /// Setting `CGEventFlags` on an event is enough for an application's own
     /// shortcuts, but system-wide shortcuts - Mission Control (⌃↑), App Exposé
     /// (⌃↓), Spotlight, screenshots - are matched against the modifier keys that
     /// are actually down. Posting the modifiers themselves is what makes those
-    /// work.
-    private static func postKey(_ keyCode: UInt16, flags: CGEventFlags) {
+    /// work. It is also what makes a remapped click a real ⌘-click or ⌥-click.
+    ///
+    /// The release runs after `body` returns, so a step that throws or returns
+    /// early cannot leave a modifier held.
+    private static func withModifiers(_ flags: CGEventFlags, _ body: (CGEventFlags) -> Void) {
         let modifiers: [(flag: CGEventFlags, keyCode: CGKeyCode)] = [
             (.maskControl, 59),     // left Control
             (.maskAlternate, 58),   // left Option
@@ -98,12 +108,18 @@ enum ActionExecutor {
             pressed.append(modifier)
         }
 
-        postKeyEvent(keyCode, flags: held, isDown: true)
-        postKeyEvent(keyCode, flags: held, isDown: false)
+        body(held)
 
         for modifier in pressed.reversed() {
             held.remove(modifier.flag)
             postKeyEvent(modifier.keyCode, flags: held, isDown: false)
+        }
+    }
+
+    private static func postKey(_ keyCode: UInt16, flags: CGEventFlags) {
+        withModifiers(flags) { held in
+            postKeyEvent(keyCode, flags: held, isDown: true)
+            postKeyEvent(keyCode, flags: held, isDown: false)
         }
     }
 
@@ -140,7 +156,7 @@ enum ActionExecutor {
         }
     }
 
-    private static func postClick(_ kind: MouseClickKind) {
+    private static func postClick(_ kind: MouseClickKind, modifiers: UInt) {
         guard let source = CGEventSource(stateID: .hidSystemState) else { return }
         let location = CGEvent(source: nil)?.location ?? .zero
         let downType: CGEventType
@@ -158,19 +174,25 @@ enum ActionExecutor {
         }
         let button = CGMouseButton(rawValue: UInt32(kind.rawValue)) ?? .center
 
-        for (type, isDown) in [(downType, true), (upType, false)] {
-            guard let event = CGEvent(
-                mouseEventSource: source,
-                mouseType: type,
-                mouseCursorPosition: location,
-                mouseButton: button
-            ) else { continue }
-            event.setIntegerValueField(.mouseEventButtonNumber, value: Int64(kind.rawValue))
-            if isDown {
-                event.setIntegerValueField(.mouseEventClickState, value: 1)
+        // A chord such as ⌘-click needs the modifiers down for real, the same
+        // way the system shortcuts do, and the flags on each event so the app
+        // under the cursor sees them too.
+        withModifiers(KeyCodeMap.cgFlags(from: modifiers)) { held in
+            for (type, isDown) in [(downType, true), (upType, false)] {
+                guard let event = CGEvent(
+                    mouseEventSource: source,
+                    mouseType: type,
+                    mouseCursorPosition: location,
+                    mouseButton: button
+                ) else { continue }
+                event.flags = held
+                event.setIntegerValueField(.mouseEventButtonNumber, value: Int64(kind.rawValue))
+                if isDown {
+                    event.setIntegerValueField(.mouseEventClickState, value: 1)
+                }
+                event.setIntegerValueField(.eventSourceUserData, value: EventMarker.value)
+                event.post(tap: .cghidEventTap)
             }
-            event.setIntegerValueField(.eventSourceUserData, value: EventMarker.value)
-            event.post(tap: .cghidEventTap)
         }
     }
 
