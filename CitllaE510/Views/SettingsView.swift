@@ -8,42 +8,6 @@ enum SettingsTab: Hashable {
     case about
 }
 
-struct SettingsView: View {
-    @EnvironmentObject private var config: ConfigStore
-    @EnvironmentObject private var eventTap: EventTapService
-    @EnvironmentObject private var loginItem: LoginItemManager
-
-    @State private var selection: SettingsTab
-
-    init(initialTab: SettingsTab = .mouse) {
-        _selection = State(initialValue: initialTab)
-    }
-
-    var body: some View {
-        TabView(selection: $selection) {
-            MouseSettingsView(selection: $selection)
-                .tabItem { Label("Mouse", systemImage: "computermouse") }
-                .tag(SettingsTab.mouse)
-            ButtonsSettingsView()
-                .tabItem { Label("Buttons", systemImage: "list.bullet") }
-                .tag(SettingsTab.buttons)
-            PermissionsView()
-                .tabItem { Label("Permissions", systemImage: "lock.shield") }
-                .tag(SettingsTab.permissions)
-            AboutView()
-                .tabItem { Label("About", systemImage: "info.circle") }
-                .tag(SettingsTab.about)
-        }
-        .environmentObject(config)
-        .environmentObject(eventTap)
-        .environmentObject(loginItem)
-        .frame(width: 760, height: 560)
-        .onAppear {
-            NSApplication.shared.activate()
-        }
-    }
-}
-
 struct MouseSettingsView: View {
     @Binding var selection: SettingsTab
     @EnvironmentObject private var config: ConfigStore

@@ -10,11 +10,15 @@ log.
 
 - Debug and Release builds are healthy; `Scripts/build.sh` runs tests, builds,
   verifies the bundle, installs and launches.
-- 48 unit tests pass (config round-trip, action model, button naming, key codes,
-  shortcut bindings, media-key decoding, receiver matching, and the diagram's
-  nine callouts).
-- Menu bar app (`LSUIElement`): menu bar icon, Settings (Mouse / Buttons /
-  Permissions / About), Diagnostics, Button Tester.
+- 137 unit tests pass (config round-trip, action model, chords, sequences and
+  the runner, presets, scroll controller, profile precedence, button naming, key
+  codes, shortcut bindings, media-key decoding, receiver matching, and the
+  diagram's nine callouts).
+- Menu bar app (`LSUIElement`) that starts in `.accessory` and grows a real main
+  window (`NavigationSplitView`) when opened. The window puts the app in
+  `.regular` — Dock icon, app menu, ⌘-Tab entry — and closing it goes back to
+  `.accessory`; *Keep in Dock* keeps it regular all the time. Sidebar, in order:
+  Overview, Buttons, Actions, Profiles, Scrolling, Advanced, Permissions, About.
 - Current bindings in `~/Library/Application Support/CitllaE510/config.json`:
   buttons 1–2 pass through, 3 → Mission Control. Only buttons 1–3 are listed;
   the mouse never sends 4–8, and rows for them from older configs are trimmed
@@ -31,9 +35,84 @@ log.
      mouse sent.
   3. **Grants:** Accessibility and Input Monitoring are held by the locally
      code-signed build and survive rebuilds (see "Signing" below).
+- Chained actions shipped: chords (⌃⌥⇧⌘ held around a click) and sequences
+  (inline steps, max 8, 0–500 ms per wait, 3000 ms total, cancel-and-restart per
+  control, stopped when remapping is switched off), with a presets menu and
+  step progress in the tester.
+- Profiles shipped: per-app overrides by bundle identifier for buttons and
+  mouse-sent keys, enabled-only, own bundle excluded, an unbound override falls
+  back to the global map, the Default row is always visible, and adding an app
+  uses `NSOpenPanel`. Profiles survive *Reset to defaults*.
+- Scrolling shipped: invert vertical/horizontal in place (phase and momentum
+  preserved), tilt left/right fire once per flick behind a 250 ms quiet window,
+  pointer speed is a link to System Settings only. No DPI, polling rate,
+  battery or gestures.
+- Signing: the local certificate's designated requirement is stable, so the one
+  `tccutil reset` plus re-grant from the switch to it is the only reset rebuilds
+  have needed. The gate run on 2026-11-09 signed with
+  `Citlla E510 Local Signing` and the grants were untouched.
 
 Confirmed by the tester: middle click shows and restores the desktop, and the
 two thumb buttons go back/forward in Chrome.
+
+## Full-app release (2026-11-09)
+
+The five feature tracks are merged (T1 core actions, T2 app shell, T3 macro UI,
+T5 scrolling, T4 profiles) and this QA/docs track follows them. What the app has
+now, beyond the menu bar remapper it started as:
+
+| Area | Shipped |
+| --- | --- |
+| Window | `NavigationSplitView` with the eight sidebar sections, 1080×660 minimum. The window is the only one; the tester and diagnostics are panes of Advanced. |
+| Dock | `.accessory` at launch; `.regular` while a window is open; back to `.accessory` when the last one closes; *Keep in Dock* overrides. |
+| Chords | A click with ⌃⌥⇧⌘ held for real around it. |
+| Sequences | Inline steps, every kind except another sequence, 8-step / 500 ms per wait / 3000 ms total caps, async with cancel-and-restart per control, cancelled when remapping goes off. Presets menu and tester step progress. |
+| Profiles | Per-app button and mouse-key overrides keyed by bundle id, global map as fallback and Default row, `NSOpenPanel` to add, enabled toggle, own bundle excluded, survives a reset. |
+| Scrolling | Vertical/horizontal inversion by rewriting the event in place; tilt left/right actions once per flick (250 ms quiet window); pointer-speed link. |
+
+The merge gate is `Scripts/check.sh`. On this commit it ran green with **137
+tests** and **13 snapshots**: `tester`, the four legacy `settings-*` shapes
+(`mouse`, `buttons`, `permissions`, `about`), and all eight `main-*` sections.
+The script now reads `MainSection.available` from `MainSection.swift` and fails
+if that list and its render loop drift apart, keeps the per-render `section=`
+assertion, and takes `--docs` to copy the eight main renders plus `tester.png`
+into `docs/snapshots/`.
+
+README and docs: the Screenshots section now shows the real main window
+(`main-overview`, `main-profiles`, `main-actions`, `main-scrolling`,
+`main-advanced`) with captions checked against OCR of the renders.
+`docs/screenshots/` (the old tab shapes) was deleted; nothing references it.
+
+### Verification, done and not done
+
+Done in the worktree, on 2026-11-09:
+
+- `Scripts/check.sh` green: 137 tests, Release build, certificate signing,
+  bundle checks, 13 2× renders with the section assertion.
+- `Scripts/check.sh --docs` exits 0 and refreshed `docs/snapshots/`.
+- `Scripts/build.sh --no-install --no-launch` green.
+- Every render was OCR'd (`Vision`) and matched to the caption in the README;
+  the Profiles render is the empty state (no app has a profile in this
+  environment), and the caption says so.
+- No source change other than removing the dead `SettingsView` struct.
+
+Not done here, on purpose: nothing was installed to `/Applications`, no worktree
+build was `open`ed, and no TCC state was touched. The live hardware pass is a
+separate step on the `/Applications` build from `main`.
+
+These cannot be proved by an offscreen test and are part of that hardware pass:
+
+- The tilt axis sign (positive horizontal delta mapped to "right") and the feel
+  of the 250 ms quiet window on the physical side wheel.
+- The `NSOpenPanel` add-app interaction and the real app icons it resolves.
+- Profile switching in a live app: that Chrome's override applies while Chrome
+  is frontmost and the global map returns when it quits.
+- The Dock icon itself. The snapshots render the sidebar offscreen; they cannot
+  capture the real Dock or ⌘-Tab entry, and this machine grants no screen
+  recording.
+
+Push state: nothing is pushed. `track/qa-docs` and the feature branches are
+local until the maintainer pushes them.
 
 ## Signing
 
@@ -60,23 +139,34 @@ copy at a temp path stayed `true`. The first certificate build dropped the old
 ad hoc grants, needing one `tccutil reset` plus a single re-grant.
 
 `MouseKeyTagger` also waits for Input Monitoring before touching the HID device
-(it used to retry every second and log a TCC denial each time), and
-Settings → Permissions starts the event tap by itself when Accessibility
-appears.
+(it used to retry every second and log a TCC denial each time), and the
+Permissions section starts the event tap by itself when Accessibility appears.
+
+Since that one reset, every certificate-signed rebuild — the worktree gate runs
+and the `/Applications` install — has kept the same designated requirement, so
+none has needed another reset or re-grant. The gate run on 2026-11-09 reported
+`signature Citlla E510 Local Signing`, and the signing step only unlocks the
+keychain; it never touches TCC.
 
 ## What the app does now
 
 | Area | Notes |
 | --- | --- |
-| Remapping | `CGEventTap` at the session level, head insert, suppresses the original button pair and runs the chosen action. Events it posts itself are stamped so they are not remapped twice. |
-| Mouse keystrokes | `MouseKeyTagger` opens the receiver (any ID in `MouseReceiver.known`: `0x1EA7:0x66`, `0x32C2:0x12`; see FIX-THUMB-BUTTONS.md) read-only with `IOHIDManager` on a background run loop. Key-downs are recorded for 120 ms; the tap only acts when the mouse just sent that key. Modifier key-downs are matched before a sample is claimed, so `⌃`/`⌘` down does not steal the tag for the key after it. |
+| Remapping | `CGEventTap` at the session level, head insert, suppresses the original button pair and runs the chosen action. Resolution is enabled profile for the frontmost app first, global map second. Events it posts itself are stamped so they are not remapped twice. |
+| Mouse keystrokes | `MouseKeyTagger` opens the receiver (any ID in `MouseReceiver.known`: `0x1EA7:0x66`, `0x32C2:0x12`) read-only with `IOHIDManager` on a background run loop. Key-downs are recorded for 120 ms; the tap only acts when the mouse just sent that key. Modifier key-downs are matched before a sample is claimed, so `⌃`/`⌘` down does not steal the tag for the key after it. |
 | Actions | macOS actions (Mission Control, Show Desktop, Launchpad, screenshot…), any keyboard shortcut, mouse clicks, open app / URL / shell command. Mission Control, App Exposé, Show Desktop and Launchpad go through the Dock; everything else is posted as events. |
-| Settings → Mouse | The two renders cut from the manufacturer's diagram, next to the nine numbered callouts with the diagram's own wording. Callout 8 shows both thumb-button actions. Clicking a row opens the action editor. Fixed 860×720 window. |
-| Settings → Buttons | Toggle, a **Mouse Keystrokes** section (`⌃←` / `⌃→` / `⌃⌘F`, all editable), and the three mouse buttons the hardware reports. |
-| Test Buttons… | Listen-only tap at head insert: highlights and counts each diagram control as it is pressed, shows a raw log, and *Copy Report*. Mouse-sent keystrokes are labelled **Mouse key** and marked bindable; keyboard events are labelled separately. |
-| Diagnostics | Raw HID reports from the receiver (needs Input Monitoring). |
+| Chords | A click with ⌃⌥⇧⌘ held for real around it through the shared `withModifiers` helper, so the app sees a genuine chord. |
+| Sequences | `.sequence` with inline steps, normalised on load (8 steps max, 0–500 ms per wait, 3000 ms total), run by `MacroRunner` off the tap thread with one run per owner and a `defer` modifier release. `MacroRunner.cancelAll()` runs when remapping goes off and at quit. |
+| Presets and tester progress | `ActionPreset.all` fills the editor: Copy → Paste, Screenshot Area to Clipboard, Safari: New Tab, Finder: New Folder, Open App → New Window, ⌘-Click. The tester mirrors a run with a silent sink so it counts and highlights steps without posting events. |
+| Profiles | `AppProfile` per bundle id, button and shortcut overrides, enabled-only, own bundle ignored, unbound override falls back to global. `ActiveAppMonitor` caches the frontmost bundle id; the tap does a dictionary lookup. Add via `NSOpenPanel`, Default row always shown, untouched by `resetToDefaults()`. |
+| Scrolling | `ScrollController` rewrites the same event's six delta fields in place; tilt is detected by the non-continuous, phaseless horizontal event shape and fires once per 250 ms quiet window. Pointer speed is a link to System Settings. |
+| Buttons → Mouse | The two renders cut from the manufacturer's diagram, next to the nine numbered callouts with the diagram's own wording. Callout 8 shows both thumb-button actions. Clicking a row opens the action editor. |
+| Buttons → Buttons | Toggle, a **Mouse Keystrokes** section (`⌃←` / `⌃→` / `⌃⌘F`, all editable), and the three mouse buttons the hardware reports. |
+| Test Buttons… | Listen-only tap at head insert: highlights and counts each diagram control as it is pressed, shows a raw log, and *Copy Report*. Mouse-sent keystrokes are labelled **Mouse key** and marked bindable; keyboard events are labelled separately. It is the Button Tester pane of Advanced, not a separate window. |
+| Diagnostics | Raw HID reports from the receiver (needs Input Monitoring), the other Advanced pane. |
+| Main window | One `NavigationSplitView`, sections Overview, Buttons, Actions, Profiles, Scrolling, Advanced, Permissions, About. `.regular` while open, `.accessory` again when it closes; *Keep in Dock* in Overview. |
 | `--status` | Prints accessibility / input monitoring / tap state and exits. |
-| `--snapshot` | Renders one of the app's own windows to PNG — the only way to check layout on this machine, which does not grant screen recording. |
+| `--snapshot` | Renders the main window (`--window main --section <id>`) or the tester pane to PNG — the only way to check layout on this machine, which does not grant screen recording. |
 
 ## System actions
 
@@ -160,13 +250,19 @@ opaque pixels on their edges.
    `com.apple.expose.front.awake`-style notifications do not exist for it).
    Lock Screen could fall back to `pmset displaysleepnow` plus "require
    password immediately", or to whichever `SAC*` lock call still exists.
-2. **Horizontal scroll/tilt.** The side wheel still arrives as a scroll event
-   and is not remapped. `EventTapService` would need to swallow `scrollWheel`
-   deltas for the tilt axis.
+2. **Tilt axis sign and the quiet window.** The side wheel is handled now
+   (`ScrollController`), but "left" and "right" are a convention: a positive
+   horizontal delta maps to right, taken from the tester's labelling. Which sign
+   the physical wheel sends, and whether 250 ms of quiet matches one flick, are
+   part of the `/Applications` hardware pass. Swapping the mapping is a one-line
+   change in `TiltDirection.direction(forHorizontalDelta:)`.
 3. **Unidentified consumer key.** The receiver sends `NX_KEYTYPE_SOUND_UP` from
    a control that is not one of the nine diagram buttons. Consumer bindings are
    implemented (`ShortcutBinding.source == .consumer`), but nothing in the UI
-   creates one yet; a "learn from tester" button would make it assignable.
+   creates one yet; a "learn from tester" button would make it assignable. The
+   tester also still labels a tilt as "the remapper does not handle scroll
+   events yet", which is stale now that scrolling landed — a UI-string cleanup
+   left for the next change to that file rather than this docs-only track.
 4. **Diagram hotspots.** The numbered badges now sit on the renders at the
    manufacturer's callout points (`MouseControl.badgePoint`), but the renders
    are still not clickable; the legend remains the interactive surface. Making
@@ -226,7 +322,8 @@ Signed" certificate was deleted from the login keychain.
   diagram's arrow tips), top crop widened so the artwork is no longer clipped,
   Spotlight and Lock Screen marked "(not available)" in the action picker
 - today: `--snapshot --scale N` renders the windows at N device pixels per point;
-  the 2x renders live in `docs/screenshots/` and are shown in the README
+  the 2x renders live in `docs/screenshots/` and are shown in the README (that
+  directory has since been replaced by `docs/snapshots/`)
 - today: receiver matching moved from one hard-coded pair to `MouseReceiver.known`
   (`0x1EA7:0x66` and `0x32C2:0x12`), so both E510 receiver revisions remap;
   Diagnostics adds vendor-only fallbacks, the tagger stays on exact IDs, and the
@@ -235,3 +332,22 @@ Signed" certificate was deleted from the login keychain.
   configs drop their 4–8 rows on load (`ButtonBinding.retiredButtons`). Deleted
   the stale "Citlla E510 Self Signed" certificate, and regenerated the docs
   screenshots at 2x from the installed build
+- T1 core actions merged (`7fd25e5`): sequence model, `MacroRunner`, the
+  executor split, `EventSink` seam and tests
+- T2 app shell merged (`3a74180`, merge `8fe3497`): main window, sidebar,
+  activation policy, Keep in Dock, `--window main --section` snapshots
+- T3 macro UI merged (`cf7a9a0`, merge `207d8e9`): shared `ActionFieldsView`,
+  `MacroEditorView`, presets, tester step progress
+- T5 scrolling merged (`1ac8b38`, merge `66d0dfb`): `ScrollController`, the
+  Scrolling section, in-place inversion and tilt actions
+- the remapping-off cancel hook (`6c02634`) and the shared action fields
+  (`4b49923`) merged; Actions and Scrolling were wired into the shell
+  (`2f8071f`)
+- T4 profiles merged (`cde6589`, merge `94244aa`): `AppProfile`,
+  `ActiveAppMonitor`, the Profiles section and precedence tests
+- today: T6 QA + docs. README covers the window and Dock lifecycle, chords,
+  sequences, profiles and scrolling; `docs/snapshots/` was refreshed by
+  `check.sh --docs` (eight sections plus tester); `docs/screenshots/` deleted;
+  `check.sh` verifies its section list against `MainSection.available` and
+  takes `--docs`; the dead `SettingsView` struct removed. Gate run: 137 tests,
+  13 snapshots.

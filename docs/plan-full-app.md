@@ -1,6 +1,6 @@
 # Plan: full Citlla E510 app + action sequences
 
-Status: in delivery · 2026-11-09
+Status: delivered · 2026-11-09
 
 ## 0. Delivery state
 
@@ -14,8 +14,8 @@ Status: in delivery · 2026-11-09
 | — Remapping-off cancel hook | merged | `6c02634` |
 | — Shared action fields (tilt collapsed onto it) | merged | `4b49923` |
 | — Actions + Scrolling sections wired into the shell | merged | `2f8071f` |
-| T4 Profiles | in flight, `track/profiles` | — |
-| T6 QA + docs | not started | — |
+| T4 Profiles | merged | `cde6589`, merge `94244aa` |
+| T6 QA + docs | done, awaiting merge | `track/qa-docs` |
 
 The merge gate is `Scripts/check.sh`: it runs the tests, builds and signs, and
 renders one 2× snapshot per sidebar section, asserting the `section=` the binary
