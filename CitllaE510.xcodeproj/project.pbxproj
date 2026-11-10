@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		08B87AAB9EC060B8D69407C0 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF2B1796042A24B29F49927 /* SettingsView.swift */; };
+		13DF5D44820DBD2149AB5C04 /* ActionsSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30AE21B3A4910775EC6464F /* ActionsSectionView.swift */; };
 		194049572FB71D47724B5058 /* ShortcutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98BED303DDB87F08A81BAC5B /* ShortcutRecorder.swift */; };
 		2ABA85FDBFA980BD44CEF8BA /* MouseReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E3A08F7FD3B7B58B2D20F0B /* MouseReceiver.swift */; };
 		2BE913354FC40C7D7671BF03 /* MainSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C46DC2EF8E7B7CDAFECCF6 /* MainSection.swift */; };
@@ -96,6 +97,7 @@
 		A08B127B7FC4E412E895F7F0 /* StatusProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusProbe.swift; sourceTree = "<group>"; };
 		A435E2C411FA9D75EF171EB5 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		AC981525B528C8C7D4620B18 /* Snapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Snapshot.swift; sourceTree = "<group>"; };
+		B30AE21B3A4910775EC6464F /* ActionsSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsSectionView.swift; sourceTree = "<group>"; };
 		B6536CC397D62E4D6F4C6E3C /* MouseMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseMapView.swift; sourceTree = "<group>"; };
 		C211C951E4E989BD57C8A9DB /* WindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowManager.swift; sourceTree = "<group>"; };
 		CD000114864B620F2174EE1E /* MainSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainSidebar.swift; sourceTree = "<group>"; };
@@ -196,6 +198,7 @@
 			children = (
 				A435E2C411FA9D75EF171EB5 /* AboutView.swift */,
 				3EC3F329932290601CBDF00F /* ActionEditorSheet.swift */,
+				B30AE21B3A4910775EC6464F /* ActionsSectionView.swift */,
 				F38D77933A30FA87332C1C2F /* DiagnosticsView.swift */,
 				71C4A3950D4BFD62DB2388FA /* MacroEditorView.swift */,
 				77C46DC2EF8E7B7CDAFECCF6 /* MainSection.swift */,
@@ -317,6 +320,7 @@
 				BDC37F94F2A640AB0443AF06 /* ActionExecutor.swift in Sources */,
 				341749A8B2F1C85FA8509D73 /* ActionPreset.swift in Sources */,
 				334929FFB478DE7FEFABA637 /* ActionProbe.swift in Sources */,
+				13DF5D44820DBD2149AB5C04 /* ActionsSectionView.swift in Sources */,
 				923E842895AA5E0A468FAD2C /* AppConfig.swift in Sources */,
 				BD4FA991A7917918870BD28C /* AppDelegate.swift in Sources */,
 				CF834E45C4FDC6C475F26722 /* AppProfile.swift in Sources */,

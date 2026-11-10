@@ -45,9 +45,8 @@ enum MainSection: String, CaseIterable, Identifiable, Hashable, Sendable {
     }
 
     /// Sections that have a view today. Tracks append their case when their
-    /// view lands: actions (macro-ui), profiles (profiles), scrolling
-    /// (scrolling).
+    /// view lands; a section that is not here is never listed in the sidebar.
     static var available: [MainSection] {
-        [.overview, .buttons, .advanced, .permissions, .about]
+        [.overview, .buttons, .actions, .scrolling, .advanced, .permissions, .about]
     }
 }

@@ -57,8 +57,21 @@ trap 'rm -f "$LOG"' EXIT
 # that a later track adds reports itself; anything else is a real failure.
 snap() {
     local name="$1"; shift
+    local want_section="" prev=""
+    for arg in "$@"; do
+        [[ "$prev" == "--section" ]] && want_section="$arg"
+        prev="$arg"
+    done
     if "$APP" "$@" >"$LOG" 2>&1; then
-        ok "$name"
+        # `Snapshot` falls back to Overview for a section that is not in
+        # `MainSection.available`, so a success alone does not prove the right
+        # pane was drawn. It prints the section it actually rendered.
+        local rendered
+        rendered="$(sed -n 's/.*section=\([a-z]*\).*/\1/p' "$LOG" | tail -1)"
+        if [[ -n "$rendered" && -n "$want_section" && "$rendered" != "$want_section" ]]; then
+            fail "snapshot $name rendered section=$rendered, expected $want_section"
+        fi
+        ok "$name${rendered:+  $DIM(section=$rendered)$RESET}"
         return
     fi
     if grep -q "no window to snapshot" "$LOG"; then
@@ -74,14 +87,12 @@ for tab in mouse buttons permissions about; do
     snap "settings-$tab" --snapshot "$OUT/settings-$tab.png" --tab "$tab" --scale 2
 done
 
-# The main window arrives with the app-shell track. Until `Snapshot` knows
-# `--window main`, it falls back to rendering Settings for any unknown name, so
-# rendering these now would be a false green. Enable this loop in the merge
-# commit that lands the shell:
-#
-# for section in overview buttons actions profiles scrolling advanced permissions about; do
-#     snap "main-$section" --snapshot "$OUT/main-$section.png" --window main --section "$section" --scale 2
-# done
+# One render per sidebar section. A section is only in this list once its view
+# exists; `snap` additionally checks that the binary really rendered it rather
+# than falling back to Overview.
+for section in overview buttons actions scrolling advanced permissions about; do
+    snap "main-$section" --snapshot "$OUT/main-$section.png" --window main --section "$section" --scale 2
+done
 
 step "Done"
 info "snapshots in $OUT"

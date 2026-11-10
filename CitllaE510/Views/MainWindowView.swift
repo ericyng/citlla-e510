@@ -38,15 +38,19 @@ struct MainSectionContent: View {
             OverviewView()
         case .buttons:
             ButtonsSectionView()
+        case .actions:
+            ActionsSectionView()
+        case .scrolling:
+            ScrollingView()
         case .advanced:
             AdvancedSectionView()
         case .permissions:
             PermissionsView()
         case .about:
             AboutView()
-        case .actions, .profiles, .scrolling:
-            // Not in `MainSection.available` yet; the feature tracks add their
-            // own views and append their case there.
+        case .profiles:
+            // Not in `MainSection.available` yet; the profiles track adds its
+            // view and appends its case there.
             UnavailableSectionView(section: selection)
         }
     }
