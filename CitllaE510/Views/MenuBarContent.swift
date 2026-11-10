@@ -5,6 +5,7 @@ struct MenuBarContent: View {
     @EnvironmentObject private var config: ConfigStore
     @EnvironmentObject private var eventTap: EventTapService
     @EnvironmentObject private var loginItem: LoginItemManager
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         Toggle(
@@ -30,10 +31,9 @@ struct MenuBarContent: View {
 
         Divider()
 
-        Button("Settings…") {
-            WindowManager.shared.showSettings()
+        Button("Open Citlla E510…") {
+            WindowManager.shared.showMain(section: .overview)
         }
-        .keyboardShortcut(",")
 
         Button("Test Buttons…") {
             WindowManager.shared.showTester()
@@ -63,6 +63,10 @@ struct MenuBarContent: View {
             // Accessibility can be granted while the app is already running
             // (or just after a rebuild), so re-check every time the menu opens.
             eventTap.startIfNeeded()
+            // The menu bar label normally hands this over at launch; registering
+            // here as well covers a scene rebuild that never re-renders the
+            // label.
+            WindowManager.shared.register(openWindow: openWindow)
         }
     }
 }

@@ -1,16 +1,26 @@
 import AppKit
 import SwiftUI
 
-/// Snapshots one of the app's own windows to a PNG.
+/// Snapshots the app's main window to a PNG.
 ///
 /// The app is a menu bar utility with no Dock icon, and this machine does not
 /// hand out screen-recording permission, so there is no other way to look at a
 /// window from a script. Run it from the built app:
 ///
+///     CitllaE510.app/Contents/MacOS/CitllaE510 --snapshot ~/Desktop/main.png --window main --section overview [--scale 2]
 ///     CitllaE510.app/Contents/MacOS/CitllaE510 --snapshot ~/Desktop/settings.png [--tab mouse|buttons|permissions|about] [--scale 2]
 ///     CitllaE510.app/Contents/MacOS/CitllaE510 --snapshot ~/Desktop/tester.png --window tester [--scale 2]
 ///
-/// The view is drawn with `cacheDisplay`, so it works without any permission.
+/// `--window main` opens the main window on `--section` (any id from
+/// `MainSection.available`; `overview` by default). `--window tester` is the old
+/// form and snapshots the main window's Advanced / Button Tester pane. The
+/// view is drawn with `cacheDisplay`, so it works without any permission.
+///
+/// The real window is a `NavigationSplitView`. Its sidebar is a Liquid Glass
+/// portal on macOS 26+, which an offscreen `cacheDisplay` cannot see, so the
+/// snapshot renders `MainWindowSnapshotView` instead: the same `MainSidebar`
+/// and `MainSectionContent` in an ordinary hosting window. Every section is
+/// still the real view, at the real window size.
 @MainActor
 enum Snapshot {
     /// Returns true when the app was launched to take a snapshot, so the normal
@@ -21,24 +31,52 @@ enum Snapshot {
         let path = args[flag + 1]
         let tab = value(of: "--tab", in: args) ?? "mouse"
         let windowName = value(of: "--window", in: args) ?? "settings"
+        let sectionName = value(of: "--section", in: args)
+        let scale = max(1, Double(value(of: "--scale", in: args) ?? "1") ?? 1)
 
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(500))
-            if windowName == "tester" {
-                WindowManager.shared.showTester()
-            } else {
-                WindowManager.shared.showSettings(tab: SettingsTab(name: tab))
-            }
-            try? await Task.sleep(for: .milliseconds(1800))
+            try? await Task.sleep(for: .milliseconds(400))
 
-            let windows = NSApp.windows.filter(\.isVisible)
-            print("visible windows: \(windows.map(\.title))")
-            guard let window = windows.first(where: { $0.title.contains(windowName == "tester" ? "Tester" : "Settings") }),
-                  let view = window.contentView else {
-                print("no window to snapshot")
+            // The documented snapshots are light-mode renders; force the same
+            // appearance so a dark-mode machine does not produce white text on
+            // a white background.
+            NSApp.appearance = NSAppearance(named: .aqua)
+
+            let state = MainWindowState()
+            switch windowName {
+            case "tester":
+                state.selection = .advanced
+                state.advancedPane = .tester
+            case "main":
+                state.selection = section(named: sectionName)
+            default:
+                state.selection = SettingsTab(name: tab).mainSection
+            }
+
+            let root = MainWindowSnapshotView()
+                .environmentObject(AppModel.shared.config)
+                .environmentObject(AppModel.shared.eventTap)
+                .environmentObject(AppModel.shared.loginItem)
+                .environmentObject(state)
+
+            let window = NSWindow(contentViewController: NSHostingController(rootView: root))
+            window.title = "Citlla E510"
+            window.styleMask = [.titled, .closable]
+            window.setContentSize(NSSize(width: 1080, height: 720))
+            window.isReleasedWhenClosed = false
+            window.center()
+            window.makeKeyAndOrderFront(nil)
+
+            // Let the section lay out, the tester start, and List/TabView draw.
+            try? await Task.sleep(for: .milliseconds(1600))
+
+            guard let view = window.contentView else {
+                print("no window content to snapshot")
                 exit(3)
             }
-            let scale = max(1, Double(value(of: "--scale", in: args) ?? "1") ?? 1)
+            view.layoutSubtreeIfNeeded()
+            view.displayIfNeeded()
+
             guard let rep = bitmap(for: view, scale: scale) else {
                 print("no bitmap")
                 exit(4)
@@ -49,10 +87,17 @@ enum Snapshot {
                 exit(5)
             }
             try? png.write(to: URL(fileURLWithPath: path))
-            print("wrote \(path) view=\(Int(view.bounds.width))x\(Int(view.bounds.height)) pixels=\(rep.pixelsWide)x\(rep.pixelsHigh) window=\(Int(window.frame.width))x\(Int(window.frame.height))")
+            print("wrote \(path) section=\(state.selection.rawValue) view=\(Int(view.bounds.width))x\(Int(view.bounds.height)) pixels=\(rep.pixelsWide)x\(rep.pixelsHigh)")
             exit(0)
         }
         return true
+    }
+
+    private static func section(named name: String?) -> MainSection {
+        guard let name, let section = MainSection(rawValue: name), MainSection.available.contains(section) else {
+            return .overview
+        }
+        return section
     }
 
     /// A bitmap for `view`, at `scale` device pixels per point.
