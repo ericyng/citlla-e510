@@ -618,6 +618,18 @@ final class ConfigStoreTests: XCTestCase {
         let decoded = try JSONDecoder().decode(AppConfig.self, from: data)
         XCTAssertEqual(decoded.action(for: 3)?.system, .mute)
     }
+
+    func testScrollSettingsArePersistedAndReloaded() {
+        let store = ConfigStore(directory: directory)
+        store.config.scroll.invertHorizontal = true
+        store.config.scroll.setAction(MouseAction(kind: .system, system: .missionControl), for: .left)
+
+        let reopened = ConfigStore(directory: directory)
+
+        XCTAssertTrue(reopened.config.scroll.invertHorizontal)
+        XCTAssertEqual(reopened.config.scroll.tiltLeft.system, .missionControl)
+        XCTAssertFalse(reopened.config.scroll.tiltRight.isBound)
+    }
 }
 
 // MARK: - Sequences
@@ -989,5 +1001,359 @@ final class MacroRunnerTests: XCTestCase {
         ])
 
         ActionExecutor.sink = LiveEventSink()
+    }
+}
+
+
+final class ScrollSettingsTests: XCTestCase {
+    func testDefaultsLeaveScrollingStock() {
+        let settings = AppConfig().scroll
+
+        XCTAssertFalse(settings.invertVertical)
+        XCTAssertFalse(settings.invertHorizontal)
+        XCTAssertEqual(settings.tiltLeft, MouseAction())
+        XCTAssertEqual(settings.tiltRight, MouseAction())
+        XCTAssertFalse(settings.hasTiltActions)
+    }
+
+    func testOldConfigWithoutScrollKeyLoadsWithItsBindings() throws {
+        // Exactly what a config written by the shipped build looks like: no
+        // `scroll` key at all.
+        let json = Data(#"""
+        {
+          "enabled": true,
+          "bindings": [
+            {"button": 3, "action": {"kind": "system", "system": "missionControl"}}
+          ],
+          "shortcutBindings": [
+            {"id": "key-123-262144", "source": "keyboard", "keyCode": 123, "modifiers": 262144, "consumerKey": 0,
+             "action": {"kind": "system", "system": "back"}}
+          ]
+        }
+        """#.utf8)
+        let config = try JSONDecoder().decode(AppConfig.self, from: json)
+
+        XCTAssertEqual(config.action(for: 3)?.system, .missionControl)
+        XCTAssertEqual(config.action(forKeyboardKeyCode: 123, modifiers: 262144)?.1.system, .back)
+        XCTAssertEqual(config.scroll, ScrollSettings())
+        XCTAssertFalse(config.scroll.invertVertical)
+        XCTAssertFalse(config.scroll.tiltLeft.isBound)
+    }
+
+    func testPartialScrollSettingsFillInDefaults() throws {
+        let json = Data(#"{"scroll": {"invertVertical": true}}"#.utf8)
+        let config = try JSONDecoder().decode(AppConfig.self, from: json)
+
+        XCTAssertTrue(config.scroll.invertVertical)
+        XCTAssertFalse(config.scroll.invertHorizontal)
+        XCTAssertEqual(config.scroll.tiltLeft, MouseAction())
+        XCTAssertEqual(config.scroll.tiltRight, MouseAction())
+    }
+
+    func testScrollSettingsRoundTripThroughTheConfig() throws {
+        var config = AppConfig()
+        config.scroll.invertVertical = true
+        config.scroll.invertHorizontal = true
+        config.scroll.tiltLeft = MouseAction(kind: .system, system: .back)
+        config.scroll.tiltRight = MouseAction(kind: .keyboardShortcut, keyCode: 8, modifiers: NSEvent.ModifierFlags.command.rawValue, hasShortcut: true)
+
+        let decoded = try JSONDecoder().decode(AppConfig.self, from: JSONEncoder().encode(config))
+
+        XCTAssertEqual(decoded, config)
+        XCTAssertEqual(decoded.scroll.tiltRight.summary, "⌘C")
+    }
+
+    func testResetLeavesStockScrollingAlone() {
+        var config = AppConfig()
+        config.scroll.invertVertical = true
+        config.scroll.tiltLeft = MouseAction(kind: .system, system: .back)
+
+        config.resetToDefaults()
+
+        // The reset dialog on the Buttons page talks about buttons only, so a
+        // scroll setting the user chose must survive it.
+        XCTAssertTrue(config.scroll.invertVertical)
+        XCTAssertEqual(config.scroll.tiltLeft.system, .back)
+    }
+
+    func testTiltActionsAreAddressedByDirection() {
+        var scroll = ScrollSettings()
+        scroll.setAction(MouseAction(kind: .system, system: .forward), for: .right)
+
+        XCTAssertEqual(scroll.action(for: .right).system, .forward)
+        XCTAssertEqual(scroll.action(for: .left), MouseAction())
+        XCTAssertTrue(scroll.hasTiltActions)
+    }
+}
+
+final class ScrollControllerTests: XCTestCase {
+    // MARK: - Helpers
+
+    private func scrollEvent(
+        units: CGScrollEventUnit = .line,
+        vertical: Int32 = 0,
+        horizontal: Int32 = 0
+    ) -> CGEvent {
+        CGEvent(
+            scrollWheelEvent2Source: nil,
+            units: units,
+            wheelCount: 2,
+            wheel1: vertical,
+            wheel2: horizontal,
+            wheel3: 0
+        )!
+    }
+
+    private static let deltaFields: [(String, CGEventField)] = [
+        ("line1", .scrollWheelEventDeltaAxis1),
+        ("line2", .scrollWheelEventDeltaAxis2),
+        ("point1", .scrollWheelEventPointDeltaAxis1),
+        ("point2", .scrollWheelEventPointDeltaAxis2),
+        ("fixed1", .scrollWheelEventFixedPtDeltaAxis1),
+        ("fixed2", .scrollWheelEventFixedPtDeltaAxis2)
+    ]
+
+    /// Every field the scroll path could plausibly disturb. Comparing this
+    /// before and after is what "the event is untouched" means.
+    private func snapshot(_ event: CGEvent) -> String {
+        var parts = Self.deltaFields.map { name, field in
+            "\(name)=\(event.getIntegerValueField(field))"
+        }
+        parts.append("continuous=\(event.getIntegerValueField(.scrollWheelEventIsContinuous))")
+        parts.append("phase=\(event.getIntegerValueField(.scrollWheelEventScrollPhase))")
+        parts.append("momentum=\(event.getIntegerValueField(.scrollWheelEventMomentumPhase))")
+        parts.append("count=\(event.getIntegerValueField(.scrollWheelEventScrollCount))")
+        parts.append("marker=\(event.getIntegerValueField(.eventSourceUserData))")
+        parts.append("flags=\(event.flags.rawValue)")
+        parts.append("timestamp=\(event.timestamp)")
+        return parts.joined(separator: " ")
+    }
+
+    private func deltas(_ event: CGEvent) -> [Int64] {
+        Self.deltaFields.map { event.getIntegerValueField($1) }
+    }
+
+    // MARK: - Inversion
+
+    func testInvertsVerticalAxisInPlace() {
+        let event = scrollEvent(vertical: 3)
+        let before = deltas(event)
+        var controller = ScrollController()
+        var settings = ScrollSettings()
+        settings.invertVertical = true
+
+        XCTAssertEqual(controller.handle(event, settings: settings), .rewritten)
+        XCTAssertEqual(deltas(event), before.map { -$0 })
+        XCTAssertGreaterThan(before[0], 0)
+        XCTAssertLessThan(event.getIntegerValueField(.scrollWheelEventDeltaAxis1), 0)
+        XCTAssertEqual(event.getIntegerValueField(.scrollWheelEventDeltaAxis2), 0, "the other axis stays put")
+    }
+
+    func testInvertsHorizontalAxisOnlyWhenAsked() {
+        let event = scrollEvent(vertical: 2, horizontal: -5)
+        let verticalBefore = event.getIntegerValueField(.scrollWheelEventDeltaAxis1)
+        let horizontalBefore = deltas(event)[1]
+        var controller = ScrollController()
+        var settings = ScrollSettings()
+        settings.invertHorizontal = true
+
+        XCTAssertEqual(controller.handle(event, settings: settings), .rewritten)
+        XCTAssertEqual(event.getIntegerValueField(.scrollWheelEventDeltaAxis1), verticalBefore)
+        XCTAssertEqual(event.getIntegerValueField(.scrollWheelEventDeltaAxis2), -horizontalBefore)
+    }
+
+    func testInversionKeepsContinuousScrollingPrecise() {
+        let event = scrollEvent(units: .pixel, vertical: -7, horizontal: 3)
+        event.setIntegerValueField(.scrollWheelEventIsContinuous, value: 1)
+        event.setIntegerValueField(.scrollWheelEventScrollPhase, value: 2)
+        event.setIntegerValueField(.scrollWheelEventMomentumPhase, value: 2)
+        let before = deltas(event)
+        var controller = ScrollController()
+        var settings = ScrollSettings()
+        settings.invertVertical = true
+        settings.invertHorizontal = true
+
+        XCTAssertEqual(controller.handle(event, settings: settings), .rewritten)
+
+        // The fixed-point fields carry the smooth deltas: exactly negated, not
+        // rounded through the whole-line field.
+        XCTAssertEqual(deltas(event), before.map { -$0 })
+        XCTAssertEqual(event.getIntegerValueField(.scrollWheelEventIsContinuous), 1)
+        XCTAssertEqual(event.getIntegerValueField(.scrollWheelEventScrollPhase), 2)
+        XCTAssertEqual(event.getIntegerValueField(.scrollWheelEventMomentumPhase), 2)
+    }
+
+    func testInvertingTwiceRestoresTheOriginalEvent() {
+        let event = scrollEvent(vertical: -4, horizontal: 9)
+        let before = snapshot(event)
+        var controller = ScrollController()
+        var settings = ScrollSettings()
+        settings.invertVertical = true
+        settings.invertHorizontal = true
+
+        _ = controller.handle(event, settings: settings)
+        _ = controller.handle(event, settings: settings)
+
+        XCTAssertEqual(snapshot(event), before)
+    }
+
+    // MARK: - Pass-through
+
+    func testDisabledSettingsLeaveTheEventByteForByteUntouched() {
+        let event = scrollEvent(units: .pixel, vertical: -7, horizontal: 3)
+        event.setIntegerValueField(.scrollWheelEventIsContinuous, value: 1)
+        event.setIntegerValueField(.scrollWheelEventScrollPhase, value: 2)
+        let before = snapshot(event)
+        var controller = ScrollController()
+
+        XCTAssertEqual(controller.handle(event, settings: ScrollSettings()), .passThrough)
+        XCTAssertEqual(snapshot(event), before)
+    }
+
+    func testEventTheAppPostedItselfIsNeverTouched() {
+        let event = scrollEvent(vertical: 4, horizontal: 4)
+        // A scroll event posted by the app (or a future re-poster) carries the
+        // marker; inverting it would turn a remapped scroll into a loop.
+        event.setIntegerValueField(.eventSourceUserData, value: EventMarker.value)
+        let before = snapshot(event)
+        var controller = ScrollController()
+        var settings = ScrollSettings()
+        settings.invertVertical = true
+        settings.invertHorizontal = true
+        settings.tiltRight = MouseAction(kind: .system, system: .forward)
+
+        XCTAssertEqual(controller.handle(event, settings: settings), .passThrough)
+        XCTAssertEqual(snapshot(event), before)
+    }
+
+    // MARK: - Tap mask
+
+    @MainActor
+    func testTapWatchesScrollWheelEvents() {
+        XCTAssertTrue(EventTapService.eventTypes.contains(.scrollWheel))
+    }
+
+    // MARK: - Tilt gestures
+
+    private func firingSettings() -> ScrollSettings {
+        var settings = ScrollSettings()
+        settings.tiltLeft = MouseAction(kind: .system, system: .back)
+        settings.tiltRight = MouseAction(kind: .system, system: .forward)
+        return settings
+    }
+
+    func testTiltFiresOncePerGesture() {
+        let settings = firingSettings()
+        var controller = ScrollController()
+        let event = scrollEvent(horizontal: 1)
+
+        XCTAssertEqual(controller.handle(event, settings: settings, at: 100.00), .tilt(.right, fire: true))
+        // The rest of the burst: swallowed, but must not fire again.
+        XCTAssertEqual(controller.handle(event, settings: settings, at: 100.02), .tilt(.right, fire: false))
+        XCTAssertEqual(controller.handle(event, settings: settings, at: 100.08), .tilt(.right, fire: false))
+        XCTAssertEqual(controller.handle(event, settings: settings, at: 100.20), .tilt(.right, fire: false))
+        // A new flick after the wheel has been quiet for the cooldown.
+        XCTAssertEqual(controller.handle(event, settings: settings, at: 100.51), .tilt(.right, fire: true))
+    }
+
+    func testTiltCooldownUsesTheEventTimestampWhenNoneIsGiven() {
+        let settings = firingSettings()
+        var controller = ScrollController()
+        // The same event twice: same timestamp, so the second call is inside
+        // the window without an explicit time.
+        let event = scrollEvent(horizontal: -1)
+
+        XCTAssertEqual(controller.handle(event, settings: settings), .tilt(.left, fire: true))
+        XCTAssertEqual(controller.handle(event, settings: settings), .tilt(.left, fire: false))
+    }
+
+    func testDirectionsHaveIndependentGestures() {
+        var controller = ScrollController()
+        let settings = firingSettings()
+
+        XCTAssertEqual(controller.handle(scrollEvent(horizontal: 1), settings: settings, at: 10), .tilt(.right, fire: true))
+        XCTAssertEqual(controller.handle(scrollEvent(horizontal: -1), settings: settings, at: 10), .tilt(.left, fire: true))
+        XCTAssertEqual(controller.handle(scrollEvent(horizontal: 1), settings: settings, at: 10.1), .tilt(.right, fire: false))
+    }
+
+    func testTiltDirectionFollowsTheHorizontalSign() {
+        XCTAssertEqual(TiltDirection.direction(forHorizontalDelta: 3), .right)
+        XCTAssertEqual(TiltDirection.direction(forHorizontalDelta: -3), .left)
+        XCTAssertNil(TiltDirection.direction(forHorizontalDelta: 0))
+    }
+
+    func testTrackpadHorizontalPanIsNotATilt() {
+        var settings = firingSettings()
+        settings.invertHorizontal = true
+        var controller = ScrollController()
+
+        let pan = scrollEvent(units: .pixel, horizontal: 12)
+        pan.setIntegerValueField(.scrollWheelEventIsContinuous, value: 1)
+        pan.setIntegerValueField(.scrollWheelEventScrollPhase, value: 2)
+
+        // It is an honest scroll: inverted like any other, never mistaken for a
+        // side-wheel flick.
+        XCTAssertEqual(controller.handle(pan, settings: settings, at: 5), .rewritten)
+        XCTAssertEqual(pan.getIntegerValueField(.scrollWheelEventPointDeltaAxis2), -12)
+        XCTAssertEqual(pan.getIntegerValueField(.scrollWheelEventPointDeltaAxis1), 0)
+    }
+
+    func testShiftWheelIsNotATilt() {
+        var settings = firingSettings()
+        settings.invertVertical = true
+        var controller = ScrollController()
+
+        // Some drivers turn shift+wheel into the horizontal axis before the
+        // tap sees it. The shift is what keeps that an honest scroll.
+        let shifted = scrollEvent(horizontal: 2)
+        shifted.flags = .maskShift
+
+        XCTAssertEqual(controller.handle(shifted, settings: settings, at: 5), .passThrough)
+        XCTAssertEqual(shifted.getIntegerValueField(.scrollWheelEventDeltaAxis2), 2)
+    }
+
+    func testVerticalScrollDoesNotTriggerATilt() {
+        var controller = ScrollController()
+        let event = scrollEvent(vertical: 3)
+
+        XCTAssertEqual(controller.handle(event, settings: firingSettings(), at: 5), .passThrough)
+    }
+
+    func testTiltWithASmallVerticalComponentStillFires() {
+        var controller = ScrollController()
+        // The wheel can report a little movement on axis 1 with a flick; the
+        // horizontal delta dominates, so it is still a tilt.
+        let event = scrollEvent(vertical: 1, horizontal: 4)
+
+        XCTAssertEqual(controller.handle(event, settings: firingSettings(), at: 5), .tilt(.right, fire: true))
+    }
+
+    func testDiagonalScrollIsNotATilt() {
+        var controller = ScrollController()
+        // A diagonal four-way wheel scroll: vertical dominates, so it is just a
+        // scroll and must not fire a side-wheel action.
+        let event = scrollEvent(vertical: 5, horizontal: 2)
+
+        XCTAssertEqual(controller.handle(event, settings: firingSettings(), at: 5), .passThrough)
+    }
+
+    func testUnboundTiltStillScrollsHorizontally() {
+        var settings = ScrollSettings()
+        settings.invertHorizontal = true
+        var controller = ScrollController()
+        let event = scrollEvent(horizontal: 4)
+
+        XCTAssertEqual(controller.handle(event, settings: settings, at: 5), .rewritten)
+        XCTAssertEqual(event.getIntegerValueField(.scrollWheelEventDeltaAxis2), -4)
+    }
+
+    func testTiltInTheUnboundDirectionStillScrolls() {
+        var settings = ScrollSettings()
+        settings.tiltRight = MouseAction(kind: .system, system: .forward)
+        var controller = ScrollController()
+        let leftwards = scrollEvent(horizontal: -4)
+
+        // Only the right tilt is remapped, so a left tilt keeps scrolling.
+        XCTAssertEqual(controller.handle(leftwards, settings: settings, at: 5), .passThrough)
     }
 }

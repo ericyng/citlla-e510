@@ -1,10 +1,94 @@
 import Foundation
 
+/// One direction of the side wheel.
+///
+/// The side wheel is HID `AC Pan`, which macOS reports on the horizontal scroll
+/// axis (axis 2). A positive delta is treated as a tilt to the right; that is
+/// the raw direction macOS uses (`ButtonTester` has always labelled it the same
+/// way) and keeping the mapping in one place makes a swap a one-line change if
+/// the hardware ever turns out to send the opposite sign.
+enum TiltDirection: String, CaseIterable, Identifiable, Sendable {
+    case left
+    case right
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .left: "Tilt left"
+        case .right: "Tilt right"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .left: "arrow.left"
+        case .right: "arrow.right"
+        }
+    }
+
+    /// The owner a sequence started by this tilt runs under, so pressing the
+    /// same way again cancels the run in flight.
+    var owner: MacroOwner { .other("tilt-\(rawValue)") }
+
+    static func direction(forHorizontalDelta delta: Int64) -> TiltDirection? {
+        if delta > 0 { return .right }
+        if delta < 0 { return .left }
+        return nil
+    }
+}
+
+/// Scroll direction and side-wheel settings.
+///
+/// The defaults are the stock macOS behaviour: no inversion and no tilt
+/// actions, so a config written before this existed keeps behaving exactly as
+/// it did.
+struct ScrollSettings: Codable, Equatable, Sendable {
+    var invertVertical: Bool = false
+    var invertHorizontal: Bool = false
+    /// Actions for the side wheel. `.none` leaves the tilt as a plain
+    /// horizontal scroll.
+    var tiltLeft: MouseAction = MouseAction()
+    var tiltRight: MouseAction = MouseAction()
+
+    /// True when at least one direction has an action, so the tap knows to
+    /// watch the horizontal axis at all.
+    var hasTiltActions: Bool { tiltLeft.isBound || tiltRight.isBound }
+
+    func action(for direction: TiltDirection) -> MouseAction {
+        switch direction {
+        case .left: tiltLeft
+        case .right: tiltRight
+        }
+    }
+
+    mutating func setAction(_ action: MouseAction, for direction: TiltDirection) {
+        switch direction {
+        case .left: tiltLeft = action
+        case .right: tiltRight = action
+        }
+    }
+
+    init() {}
+
+    // Same forgiveness as `AppConfig` and `MouseAction`: a config written by a
+    // build without one of these keys must load, not reset the whole file.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        invertVertical = try container.decodeIfPresent(Bool.self, forKey: .invertVertical) ?? false
+        invertHorizontal = try container.decodeIfPresent(Bool.self, forKey: .invertHorizontal) ?? false
+        tiltLeft = try container.decodeIfPresent(MouseAction.self, forKey: .tiltLeft) ?? MouseAction()
+        tiltRight = try container.decodeIfPresent(MouseAction.self, forKey: .tiltRight) ?? MouseAction()
+    }
+}
+
 struct AppConfig: Codable, Equatable, Sendable {
     var enabled: Bool = true
     var bindings: [ButtonBinding] = ButtonBinding.defaults
     /// Controls the mouse sends as keystrokes rather than as mouse buttons.
     var shortcutBindings: [ShortcutBinding] = ShortcutBinding.defaults
+    /// Scroll direction and side wheel. Independent of `bindings`.
+    var scroll: ScrollSettings = ScrollSettings()
 
     func action(for button: Int) -> MouseAction? {
         bindings.first(where: { $0.button == button })?.action
@@ -69,6 +153,9 @@ struct AppConfig: Codable, Equatable, Sendable {
     mutating func resetToDefaults() {
         bindings = ButtonBinding.defaults
         shortcutBindings = ShortcutBinding.defaults
+        // Scrolling is deliberately untouched: the reset lives on the Buttons
+        // page and says it resets buttons. The Scrolling page has its own
+        // switches, and turning those off is the way back to stock scrolling.
     }
 
     init() {}
@@ -98,5 +185,10 @@ struct AppConfig: Codable, Equatable, Sendable {
             shortcuts.append(fallback)
         }
         shortcutBindings = shortcuts
+
+        // Configs written before the Scrolling section existed have no `scroll`
+        // key, and must load with stock scrolling rather than fail and reset
+        // every binding.
+        scroll = try container.decodeIfPresent(ScrollSettings.self, forKey: .scroll) ?? ScrollSettings()
     }
 }
