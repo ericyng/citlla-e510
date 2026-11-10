@@ -259,10 +259,7 @@ opaque pixels on their edges.
 3. **Unidentified consumer key.** The receiver sends `NX_KEYTYPE_SOUND_UP` from
    a control that is not one of the nine diagram buttons. Consumer bindings are
    implemented (`ShortcutBinding.source == .consumer`), but nothing in the UI
-   creates one yet; a "learn from tester" button would make it assignable. The
-   tester also still labels a tilt as "the remapper does not handle scroll
-   events yet", which is stale now that scrolling landed — a UI-string cleanup
-   left for the next change to that file rather than this docs-only track.
+   creates one yet; a "learn from tester" button would make it assignable.
 4. **Diagram hotspots.** The numbered badges now sit on the renders at the
    manufacturer's callout points (`MouseControl.badgePoint`), but the renders
    are still not clickable; the legend remains the interactive surface. Making
