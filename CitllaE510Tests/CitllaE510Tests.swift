@@ -302,7 +302,8 @@ final class ActionContractTests: XCTestCase {
 
     func testStepCannotBeASequence() {
         XCTAssertFalse(ActionKind.stepCases.contains(.sequence))
-        XCTAssertFalse(ActionKind.editableCases.contains(.sequence), "the picker must not offer a kind with no editor")
+        XCTAssertTrue(ActionKind.editableCases.contains(.sequence), "the editor now offers Sequence")
+        XCTAssertTrue(ActionKind.editableCases.contains(.mouseClick), "every kind should be reachable from the picker")
     }
 
     // MARK: Config compatibility
@@ -991,3 +992,259 @@ final class MacroRunnerTests: XCTestCase {
         ActionExecutor.sink = LiveEventSink()
     }
 }
+
+// MARK: - Macro editor
+
+/// The editor's model logic: chord toggles, step list edits, caps, presets and
+/// the preview string. No UI is instantiated, so these run headless.
+final class MacroEditorTests: XCTestCase {
+    private let command = NSEvent.ModifierFlags.command.rawValue
+    private let control = NSEvent.ModifierFlags.control.rawValue
+    private let shift = NSEvent.ModifierFlags.shift.rawValue
+
+    private func preset(_ id: String) throws -> ActionPreset {
+        try XCTUnwrap(ActionPreset.all.first { $0.id == id }, "missing preset \(id)")
+    }
+
+    // MARK: Chords
+
+    func testChordToggleSetsAndClearsOneFlag() {
+        var mask: UInt = 0
+        mask = ChordModifier.setting(.command, on: true, in: mask)
+        XCTAssertEqual(mask, command)
+        XCTAssertTrue(ChordModifier.isOn(.command, in: mask))
+        XCTAssertFalse(ChordModifier.isOn(.shift, in: mask))
+
+        mask = ChordModifier.setting(.shift, on: true, in: mask)
+        XCTAssertEqual(ChordModifier.modifiers(in: mask), [.shift, .command])
+
+        mask = ChordModifier.setting(.command, on: false, in: mask)
+        XCTAssertEqual(mask, shift)
+        XCTAssertEqual(ChordModifier.modifiers(in: mask), [.shift])
+        XCTAssertEqual(ChordModifier.mask(of: [.shift]), shift)
+    }
+
+    func testChordMaskReadsAsTheEditorPreview() {
+        let mask = ChordModifier.mask(of: [.control, .shift, .command])
+        let action = MouseAction(kind: .mouseClick, click: .left, clickModifiers: mask)
+
+        XCTAssertEqual(action.summary, "⌃⇧⌘ Left Click")
+        XCTAssertEqual(MouseAction.describe(click: .right, modifiers: shift), "⇧ Right Click")
+    }
+
+    // MARK: Step list
+
+    func testAddStepUsesThePlanDefaultsAndStopsAtTheCap() {
+        var steps: [ActionStep] = []
+
+        XCTAssertTrue(steps.addStep())
+        XCTAssertEqual(steps.first?.kind, .keyboardShortcut)
+        XCTAssertEqual(steps.first?.delayMilliseconds, 0, "the first step has nothing to wait for")
+
+        XCTAssertTrue(steps.addStep())
+        XCTAssertEqual(steps.last?.delayMilliseconds, SequenceLimits.defaultStepDelayMilliseconds)
+
+        steps.append(ActionStep(kind: .keyboardShortcut))
+        steps[steps.count - 1].kind = .openApp
+        XCTAssertTrue(steps.addStep())
+        XCTAssertEqual(
+            steps.last?.delayMilliseconds,
+            SequenceLimits.defaultDelayAfterOpenAppMilliseconds,
+            "an Open App step gets the longer wait before the next step"
+        )
+
+        while steps.count < SequenceLimits.maxSteps {
+            XCTAssertTrue(steps.addStep())
+        }
+        XCTAssertEqual(steps.count, SequenceLimits.maxSteps)
+        XCTAssertFalse(steps.addStep(), "the add button must stop at the cap")
+        XCTAssertEqual(steps.count, SequenceLimits.maxSteps)
+    }
+
+    func testDuplicateStepInsertsACopyDirectlyAfterTheOriginal() {
+        var steps = [
+            ActionStep(kind: .system, system: .back),
+            ActionStep(kind: .system, system: .forward)
+        ]
+
+        XCTAssertTrue(steps.duplicateStep(at: 0))
+        XCTAssertEqual(steps.map(\.system), [.back, .back, .forward])
+        XCTAssertFalse(steps.duplicateStep(at: 9), "out-of-range duplicate is a no-op")
+
+        while steps.count < SequenceLimits.maxSteps {
+            steps.duplicateStep(at: 0)
+        }
+        XCTAssertEqual(steps.count, SequenceLimits.maxSteps)
+        XCTAssertFalse(steps.duplicateStep(at: 0), "duplicate must respect the cap")
+    }
+
+    func testDeleteStepAndBounds() {
+        var steps = [
+            ActionStep(kind: .system, system: .back),
+            ActionStep(kind: .system, system: .missionControl),
+            ActionStep(kind: .system, system: .forward)
+        ]
+
+        XCTAssertTrue(steps.deleteStep(at: 1))
+        XCTAssertEqual(steps.map(\.system), [.back, .forward])
+        XCTAssertFalse(steps.deleteStep(at: 7))
+        XCTAssertFalse(steps.deleteStep(at: -1))
+        XCTAssertEqual(steps.count, 2)
+    }
+
+    func testMoveStepReordersInBothDirections() {
+        var steps = [
+            ActionStep(kind: .system, system: .back),
+            ActionStep(kind: .system, system: .missionControl),
+            ActionStep(kind: .system, system: .forward)
+        ]
+
+        XCTAssertTrue(steps.moveStep(from: 0, to: 2))
+        XCTAssertEqual(steps.map(\.system), [.missionControl, .forward, .back])
+
+        XCTAssertTrue(steps.moveStep(from: 2, to: 0))
+        XCTAssertEqual(steps.map(\.system), [.back, .missionControl, .forward])
+
+        XCTAssertFalse(steps.moveStep(from: 1, to: 1))
+        XCTAssertFalse(steps.moveStep(from: 0, to: 3))
+        XCTAssertFalse(steps.moveStep(from: -1, to: 0))
+        XCTAssertEqual(steps.count, 3)
+    }
+
+    // MARK: Preview
+
+    func testPreviewPrintsDelaysInFiringOrder() {
+        let steps = [
+            ActionStep(kind: .keyboardShortcut, keyCode: 8, modifiers: command, hasShortcut: true),
+            ActionStep(
+                kind: .keyboardShortcut,
+                keyCode: 9,
+                modifiers: command,
+                hasShortcut: true,
+                delayMilliseconds: 100
+            ),
+            ActionStep(kind: .keyboardShortcut, keyCode: 36, hasShortcut: true, delayMilliseconds: 40)
+        ]
+
+        XCTAssertEqual(
+            SequencePreview.text(for: steps),
+            "⌘C → 100 ms → ⌘V → 40 ms → Return"
+        )
+        XCTAssertEqual(SequencePreview.totalDelay(of: steps), 140)
+        // The legend/rows keep using the compact, delay-free summary.
+        XCTAssertEqual(MouseAction(kind: .sequence, steps: steps).summary, "⌘C → ⌘V → Return")
+    }
+
+    func testPreviewIsEmptySafeAndClampsDelays() {
+        XCTAssertEqual(SequencePreview.text(for: []), "No steps")
+        XCTAssertEqual(SequencePreview.totalDelay(of: [
+            ActionStep(kind: .system, system: .back, delayMilliseconds: 9_999)
+        ]), SequenceLimits.maxStepDelayMilliseconds)
+    }
+
+    // MARK: Presets
+
+    func testPresetCatalogHasUniqueIdentifiers() {
+        let presets = ActionPreset.all
+
+        XCTAssertEqual(presets.count, 6)
+        XCTAssertEqual(Set(presets.map(\.id)).count, presets.count)
+        XCTAssertTrue(presets.allSatisfy { !$0.name.isEmpty && !$0.detail.isEmpty })
+    }
+
+    func testCopyPastePresetIsASequenceWithAWait() throws {
+        let action = try preset("copy-paste").make()
+
+        XCTAssertEqual(action.kind, .sequence)
+        XCTAssertEqual(action.steps.map(\.summary), ["⌘C", "⌘V"])
+        XCTAssertEqual(action.steps[1].delayMilliseconds, 100)
+        XCTAssertTrue(action.isBound)
+    }
+
+    func testScreenshotPresetSendsControlShiftCommand4() throws {
+        let action = try preset("screenshot-area").make()
+
+        XCTAssertEqual(action.kind, .keyboardShortcut)
+        XCTAssertEqual(action.keyCode, 21)
+        XCTAssertEqual(action.modifiers, NSEvent.ModifierFlags([.control, .shift, .command]).rawValue)
+        XCTAssertTrue(action.hasShortcut)
+        XCTAssertEqual(action.summary, "⌃⇧⌘4")
+    }
+
+    func testFinderNewFolderPresetSendsShiftCommandN() throws {
+        let action = try preset("finder-new-folder").make()
+
+        XCTAssertEqual(action.kind, .keyboardShortcut)
+        XCTAssertEqual(action.keyCode, 45)
+        XCTAssertEqual(action.modifiers, shift | command)
+        XCTAssertEqual(action.summary, "⇧⌘N")
+    }
+
+    func testSafariPresetActivatesThenSendsCommandT() throws {
+        let action = try preset("safari-new-tab").make()
+
+        XCTAssertEqual(action.kind, .sequence)
+        XCTAssertEqual(action.steps.map(\.kind), [.openApp, .keyboardShortcut])
+        XCTAssertEqual(action.steps[0].text, "/Applications/Safari.app")
+        XCTAssertEqual(action.steps[1].summary, "⌘T")
+        XCTAssertEqual(
+            action.steps[1].delayMilliseconds,
+            SequenceLimits.defaultDelayAfterOpenAppMilliseconds,
+            "the app needs a moment to take focus before ⌘T lands"
+        )
+    }
+
+    func testOpenAppPresetWaitsThenSendsCommandN() throws {
+        let action = try preset("open-app-new-window").make()
+
+        XCTAssertEqual(action.steps.first?.kind, .openApp)
+        XCTAssertEqual(action.steps.last?.summary, "⌘N")
+        XCTAssertEqual(
+            action.steps.last?.delayMilliseconds,
+            SequenceLimits.defaultDelayAfterOpenAppMilliseconds
+        )
+    }
+
+    func testCommandClickPresetProducesAChord() throws {
+        let action = try preset("command-click").make()
+
+        XCTAssertEqual(action.kind, .mouseClick)
+        XCTAssertEqual(action.click, .left)
+        XCTAssertEqual(action.clickModifiers, command)
+        XCTAssertEqual(action.summary, "⌘ Left Click")
+    }
+
+    func testPresetSequencesFitTheCaps() {
+        for preset in ActionPreset.all {
+            let action = preset.make()
+            XCTAssertLessThanOrEqual(action.steps.count, SequenceLimits.maxSteps, preset.id)
+            XCTAssertLessThanOrEqual(
+                SequencePreview.totalDelay(of: action.steps),
+                SequenceLimits.maxTotalMilliseconds,
+                preset.id
+            )
+            XCTAssertFalse(action.steps.contains { $0.kind == .sequence }, preset.id)
+            XCTAssertTrue(action.isBound, preset.id)
+        }
+    }
+
+    // MARK: Tester progress model
+
+    func testSequenceProgressCountsStepsAndMarksTheLastOne() {
+        var progress = SequenceProgress(
+            label: "Middle Click",
+            steps: (0..<3).map { _ in ActionStep(kind: .system, system: .back) }
+        )
+
+        XCTAssertNil(progress.currentNumber)
+        progress.current = 1
+        XCTAssertEqual(progress.currentNumber, 2)
+        XCTAssertFalse(progress.finished)
+
+        progress.current = 2
+        progress.finished = true
+        XCTAssertEqual(progress.currentNumber, 3)
+        XCTAssertEqual(progress.total, 3)
+    }
+}
+

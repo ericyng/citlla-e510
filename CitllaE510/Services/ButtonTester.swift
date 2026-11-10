@@ -42,6 +42,27 @@ struct TesterControl: Identifiable {
     var lastSeen: Date
 }
 
+/// The steps of a sequence the tester is watching, and which one is firing.
+///
+/// The tester never posts events; the remapper owns the real run. To report
+/// progress the tester asks `MacroRunner` to run the same steps against a sink
+/// that does nothing, so the `onStep` callback arrives in lockstep with the
+/// real run without a second set of clicks or keystrokes reaching the system.
+struct SequenceProgress: Equatable {
+    /// The control that started the run, e.g. "Middle Click" or "⌃←".
+    let label: String
+    /// The steps that will actually fire, after normalisation and the caps.
+    let steps: [ActionStep]
+    /// Index of the step currently firing; `nil` before the first one.
+    var current: Int?
+    var finished = false
+
+    var total: Int { steps.count }
+
+    /// 1-based number for display, matching the step list.
+    var currentNumber: Int? { current.map { $0 + 1 } }
+}
+
 /// What one numbered control from the diagram has sent so far.
 struct ControlHit: Equatable {
     var count = 0
@@ -62,6 +83,9 @@ final class ButtonTester: ObservableObject {
     @Published private(set) var hits: [Int: ControlHit] = [:]
     @Published private(set) var lastUnmapped: String?
     @Published private(set) var errorMessage: String?
+    /// Progress of the last sequence a bound control ran while the tester was
+    /// watching, so the window can count and highlight steps.
+    @Published private(set) var sequenceProgress: SequenceProgress?
 
     private let config: ConfigStore
     private let tagger: MouseKeyTagger
@@ -69,6 +93,13 @@ final class ButtonTester: ObservableObject {
     private var runLoopSource: CFRunLoopSource?
     private var lastScrollRecord = Date.distantPast
     private static let maxEvents = 120
+
+    /// Mirror runs are keyed separately from the remapper's real runs, so the
+    /// preview can never cancel (or be cancelled by) the action actually firing.
+    private static let previewOwner = MacroOwner.other("tester-preview")
+    /// Identifies the current preview, so a step from a replaced run cannot
+    /// highlight the wrong row.
+    private var previewToken = UUID()
 
     init(config: ConfigStore, tagger: MouseKeyTagger) {
         self.config = config
@@ -138,6 +169,9 @@ final class ButtonTester: ObservableObject {
         tap = nil
         runLoopSource = nil
         isRunning = false
+        MacroRunner.cancel(owner: Self.previewOwner)
+        sequenceProgress = nil
+        previewToken = UUID()
     }
 
     func clear() {
@@ -145,6 +179,9 @@ final class ButtonTester: ObservableObject {
         controls.removeAll()
         hits.removeAll()
         lastUnmapped = nil
+        MacroRunner.cancel(owner: Self.previewOwner)
+        sequenceProgress = nil
+        previewToken = UUID()
     }
 
     /// A plain-text summary that can be pasted into a bug report.
@@ -236,6 +273,10 @@ final class ButtonTester: ObservableObject {
             // counts, so the tally matches the number of presses.
             counts: phase == "down"
         )
+
+        if phase == "down" {
+            previewIfNeeded(config.binding(for: button).action, label: name)
+        }
     }
 
     private func recordScroll(_ event: CGEvent) {
@@ -313,6 +354,11 @@ final class ButtonTester: ObservableObject {
             // it must not be reported as "not on the diagram".
             flagsUnmapped: sample != nil
         )
+
+        if sample != nil,
+           let (_, action) = config.config.action(forKeyboardKeyCode: keyCode, modifiers: modifiers) {
+            previewIfNeeded(action, label: shortcut)
+        }
     }
 
     private func recordSystemDefined(_ event: CGEvent) {
@@ -351,6 +397,10 @@ final class ButtonTester: ObservableObject {
             counts: isDown,
             flagsUnmapped: sample != nil && isDown
         )
+
+        if isDown, sample != nil, let (_, action) = config.config.action(forConsumerKey: keyType) {
+            previewIfNeeded(action, label: name)
+        }
     }
 
     private func verdictForButton(_ button: Int) -> TesterVerdict {
@@ -358,6 +408,48 @@ final class ButtonTester: ObservableObject {
         return action.isBound
             ? .bindable(button: button, action: action.summary)
             : .unbound(button: button)
+    }
+
+    // MARK: - Sequence progress
+
+    /// Mirrors a sequence run so the window can count steps and highlight the
+    /// one that is firing.
+    ///
+    /// The run is handed to `MacroRunner` on the main actor with a silent sink,
+    /// so nothing is posted, the tap and the UI never wait, and the reported
+    /// steps arrive with the runner's own delays and caps. A second press of the
+    /// same control replaces the preview, exactly as it replaces the real run.
+    private func previewIfNeeded(_ action: MouseAction, label: String) {
+        guard isRunning, action.kind == .sequence else { return }
+
+        let planned = MacroRunner.plan(for: action.steps)
+        guard !planned.isEmpty else { return }
+
+        let token = UUID()
+        previewToken = token
+        sequenceProgress = SequenceProgress(
+            label: label,
+            steps: planned.map(\.step),
+            current: nil
+        )
+
+        MacroRunner.run(
+            action.steps,
+            owner: Self.previewOwner,
+            onStep: { [weak self] index in
+                guard let self, self.previewToken == token else { return }
+                self.sequenceStepFired(index)
+            },
+            sink: SilentEventSink.shared
+        )
+    }
+
+    private func sequenceStepFired(_ index: Int) {
+        guard var progress = sequenceProgress,
+              progress.steps.indices.contains(index) else { return }
+        progress.current = index
+        progress.finished = index == progress.steps.count - 1
+        sequenceProgress = progress
     }
 
     private func eventSourceName(_ event: CGEvent) -> String {
@@ -448,4 +540,21 @@ private let testerCallback: CGEventTapCallBack = { _, type, event, userInfo in
 private struct EventBox: @unchecked Sendable {
     let type: CGEventType
     let event: CGEvent
+}
+
+/// A sink that records nothing, for the tester's step preview.
+///
+/// `MacroRunner` only distinguishes steps by calling the sink; handing it this
+/// one lets the tester receive `onStep` for a run that touches nothing, so the
+/// real click or keystroke still comes from the remapper alone.
+@MainActor
+private final class SilentEventSink: EventSink {
+    static let shared = SilentEventSink()
+
+    func postKey(_ keyCode: CGKeyCode, flags: CGEventFlags, isDown: Bool) {}
+    func postMouseClick(_ kind: MouseClickKind, flags: CGEventFlags, isDown: Bool) {}
+    func postSystem(_ action: SystemAction) {}
+    func openApp(at path: String) {}
+    func openURL(_ string: String) {}
+    func runShell(_ command: String) {}
 }

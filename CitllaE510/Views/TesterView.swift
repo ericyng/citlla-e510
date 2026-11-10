@@ -20,6 +20,8 @@ struct TesterView: View {
             }
             content
             Divider()
+            sequenceStrip
+            Divider()
             log
         }
         .frame(minWidth: 860, minHeight: 600)
@@ -116,6 +118,84 @@ struct TesterView: View {
         }
         text += "  ×\(hit.count)"
         return text
+    }
+
+    // MARK: - Sequence progress
+
+    /// Shows the step that is firing and, once it is done, "ran N steps".
+    ///
+    /// The tester mirrors the run on a silent sink (`ButtonTester`), so this
+    /// never posts anything and never waits: the strip updates as the runner's
+    /// `onStep` callbacks land on the main actor.
+    private var sequenceStrip: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Image(systemName: "list.number")
+                    .foregroundStyle(.secondary)
+
+                if let progress = tester.sequenceProgress {
+                    Text(progress.finished ? "Ran \(progress.total) steps" : "Running step \(progress.currentNumber ?? 1) of \(progress.total)")
+                        .font(.callout.weight(.medium))
+                    Text("· \(progress.label)")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("Sequence")
+                        .font(.callout.weight(.medium))
+                    Text("· press a control bound to a Sequence to watch its steps. The tester mirrors the run and posts nothing itself.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            if let progress = tester.sequenceProgress {
+                ScrollView(.horizontal) {
+                    HStack(spacing: 6) {
+                        ForEach(Array(progress.steps.enumerated()), id: \.offset) { index, step in
+                            stepChip(
+                                number: index + 1,
+                                delay: step.clampedDelay,
+                                summary: step.summary,
+                                active: progress.current == index
+                            )
+                        }
+                    }
+                }
+                .scrollIndicators(.never)
+                .frame(height: 22)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 8)
+    }
+
+    private func stepChip(number: Int, delay: Int, summary: String, active: Bool) -> some View {
+        HStack(spacing: 4) {
+            Text("\(number)")
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
+            if delay > 0 {
+                Text("\(delay) ms")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.tertiary)
+            }
+            Text(summary)
+                .font(.caption.monospaced())
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .fill(active ? Color.accentColor.opacity(0.22) : Color.secondary.opacity(0.10))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .strokeBorder(active ? Color.accentColor : .clear)
+        )
     }
 
     private var log: some View {
