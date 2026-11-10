@@ -20,6 +20,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let model = AppModel.shared
 
+        // With *Keep in Dock* on, the app is a normal Dock app from launch even
+        // before a window exists. Otherwise this is a no-op: the app stays
+        // `.accessory` and only the menu bar icon is visible.
+        WindowManager.shared.applyActivationPolicy()
+
         Task { @MainActor in
             // Let AppKit finish launching before creating the session event tap.
             try? await Task.sleep(for: .milliseconds(400))
@@ -49,5 +54,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
+    }
+
+    /// Clicking the Dock icon with no visible window opens the main window
+    /// again. Without *Keep in Dock* there is no Dock icon, so this only fires
+    /// while the app is already in `.regular`.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag {
+            WindowManager.shared.reopen()
+        }
+        return true
     }
 }

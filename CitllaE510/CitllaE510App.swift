@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 /// Owns the objects every scene and window shares. Created once so the app
-/// delegate, the menu bar menu and the AppKit windows all talk to the same
+/// delegate, the menu bar menu and the main window all talk to the same
 /// `ConfigStore` and `EventTapService`.
 @MainActor
 final class AppModel {
@@ -49,8 +49,48 @@ struct CitllaE510App: App {
                 .environmentObject(eventTap)
                 .environmentObject(loginItem)
         } label: {
-            Image(systemName: "computermouse")
-                .accessibilityLabel("Citlla E510")
+            MenuBarLabel()
         }
+
+        Window("Citlla E510", id: AppWindowID.main) {
+            MainWindowView()
+                .environmentObject(config)
+                .environmentObject(eventTap)
+                .environmentObject(loginItem)
+                .environmentObject(WindowManager.shared.state)
+        }
+        .defaultSize(width: 1080, height: 720)
+        .windowResizability(.contentMinSize)
+        // The app must still start as a menu bar utility with no window. The
+        // window is only created when the menu bar, a command or the delegate
+        // asks for it.
+        .defaultLaunchBehavior(.suppressed)
+        .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button("About Citlla E510") {
+                    WindowManager.shared.showSettings(tab: .about)
+                }
+            }
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings…") {
+                    WindowManager.shared.showSettings()
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
+        }
+    }
+}
+
+/// The menu bar icon. It also captures SwiftUI's `openWindow` action so the
+/// AppDelegate and the menu bar menu can open the main window programmatically.
+private struct MenuBarLabel: View {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Image(systemName: "computermouse")
+            .accessibilityLabel("Citlla E510")
+            .onAppear {
+                WindowManager.shared.register(openWindow: openWindow)
+            }
     }
 }
