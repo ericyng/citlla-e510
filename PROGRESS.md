@@ -156,6 +156,13 @@ Signed" certificate was deleted from the login keychain.
 
 ## Verification notes
 
+- **Live, 2026-11-09, Release build on macOS 27.0.1:** the event tap and HID
+  listener both started, `Button 3 triggered Mission Control` fired on every
+  middle click (Mission Control opened), and `Mouse key ⌃Left Arrow/⌃Right
+  Arrow triggered Back/Forward` fired on every thumb press (both navigated the
+  right way). The app's own launch log reported `accessibility=true
+  inputMonitoring=Granted`, which is the only trustworthy reading - `--status`
+  from a shell borrows the terminal's TCC identity.
 - The app's windows cannot be inspected through AX: for a `MenuBarExtra` app,
   `AXWindows` returns proxy elements that resolve back to the application
   element. `--snapshot` plus OCR (`Vision`) of the PNG works instead. Composite
