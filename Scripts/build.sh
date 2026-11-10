@@ -66,6 +66,13 @@ if [[ -n "$SIGN_IDENTITY" ]]; then
     SIGN_ARGS=(CODE_SIGN_IDENTITY="$SIGN_IDENTITY" CODE_SIGNING_REQUIRED=YES CODE_SIGNING_ALLOWED=YES)
 fi
 
+# Local signing identity created by Scripts/create-signing-identity.sh. It is
+# preferred over ad hoc because its designated requirement is stable and scoped
+# to this key, so TCC grants survive rebuilds and other bundles cannot match.
+LOCAL_IDENTITY="Citlla E510 Local Signing"
+LOCAL_KEYCHAIN="$HOME/Library/Keychains/citlla-signing.keychain-db"
+LOCAL_PASSWORD_FILE="$HOME/Library/Application Support/CitllaE510/signing/keychain-password"
+
 # ---------------------------------------------------------------------------
 step "Preflight"
 command -v xcodebuild >/dev/null || fail "xcodebuild not found; install Xcode."
@@ -124,6 +131,15 @@ info "built $BUILT_APP"
 step "Signing"
 if [[ -n "$SIGN_IDENTITY" ]]; then
     info "signed with $SIGN_IDENTITY"
+elif [[ -f "$LOCAL_KEYCHAIN" && -f "$LOCAL_PASSWORD_FILE" ]]; then
+    security unlock-keychain -p "$(cat "$LOCAL_PASSWORD_FILE")" "$LOCAL_KEYCHAIN" >/dev/null 2>&1 \
+        || fail "could not unlock $LOCAL_KEYCHAIN; run Scripts/create-signing-identity.sh --force"
+    codesign --force --sign "$LOCAL_IDENTITY" --keychain "$LOCAL_KEYCHAIN" \
+        --identifier "$BUNDLE_ID" \
+        --entitlements CitllaE510/CitllaE510.entitlements \
+        "$BUILT_APP" >/dev/null 2>&1 \
+        || fail "signing with \"$LOCAL_IDENTITY\" failed; run Scripts/create-signing-identity.sh --force"
+    info "signed with \"$LOCAL_IDENTITY\" (stable, scoped to this key)"
 else
     # A plain ad hoc signature pins the exact binary, so every rebuild looks
     # like a different app to TCC and the Accessibility / Input Monitoring
@@ -136,7 +152,9 @@ else
         --requirements "$REQUIREMENT" \
         --entitlements CitllaE510/CitllaE510.entitlements \
         "$BUILT_APP" >/dev/null 2>&1 || fail "ad hoc re-sign failed"
-    info "ad hoc, stable designated requirement (grants survive rebuilds)"
+    warn "no local signing identity, using ad hoc"
+    info "run Scripts/create-signing-identity.sh once for a proper identity"
+    info "the ad hoc requirement is identifier-only: any bundle with this id matches it"
 fi
 
 # ---------------------------------------------------------------------------
@@ -151,7 +169,11 @@ plist() { /usr/libexec/PlistBuddy -c "Print $1" "$BUILT_APP/Contents/Info.plist"
 
 VERSION="$(plist CFBundleShortVersionString)"
 BUILD_NUMBER="$(plist CFBundleVersion)"
-SIGNATURE="$(codesign -dv "$BUILT_APP" 2>&1 | awk -F= '/^Authority=/{print $2; exit}')"
+# --verbose=4 is required: plain `codesign -dv` stops printing Authority on
+# recent macOS versions, which made a certificate-signed build look ad hoc.
+# awk must read to the end: exiting on the match closes the pipe and, with
+# `pipefail`, kills the build with SIGPIPE.
+SIGNATURE="$(codesign -dv --verbose=4 "$BUILT_APP" 2>&1 | awk -F= '/^Authority=/{a=$2} END{if (a != "") print a}')"
 [[ -n "$SIGNATURE" ]] || SIGNATURE="ad hoc"
 info "bundle id   $BUNDLE_ID"
 info "version     $VERSION ($BUILD_NUMBER)"
@@ -192,12 +214,14 @@ LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Versions/A/Framewor
 [[ -x "$LSREGISTER" ]] && "$LSREGISTER" -f "$TARGET" >/dev/null 2>&1 || true
 info "installed $TARGET"
 
-# The ad hoc signature uses an identifier-based designated requirement, so a
-# grant from an earlier build still matches. Only builds made before that
-# change (or with a different identity) need the list entry refreshed.
-if ! codesign -dv "$TARGET" 2>&1 | grep -q "^Authority="; then
+# A certificate signature has a designated requirement scoped to that key, so
+# every rebuild matches its existing grants. Only the ad hoc fallback uses the
+# broader identifier-only requirement and needs the wording below.
+if [[ "$SIGNATURE" == "ad hoc" ]]; then
     info "ad hoc signature keeps existing TCC grants across rebuilds"
     info "if remapping stops working anyway: tccutil reset Accessibility $BUNDLE_ID"
+else
+    info "signed by \"$SIGNATURE\"; grants survive rebuilds"
 fi
 
 # ---------------------------------------------------------------------------

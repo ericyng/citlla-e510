@@ -29,18 +29,40 @@ log.
      not mouse buttons 4/5. `MouseKeyTagger` listens to the mouse's own HID
      reports on a background run loop so the tap only remaps keystrokes the
      mouse sent.
-  3. **Grants:** Accessibility and Input Monitoring are held by the ad hoc
-     signed build and survive rebuilds.
+  3. **Grants:** Accessibility and Input Monitoring are held by the locally
+     code-signed build and survive rebuilds (see "Signing" below).
 
 Confirmed by the tester: middle click shows and restores the desktop, and the
 two thumb buttons go back/forward in Chrome.
 
-Builds are re-signed ad hoc with `designated => identifier
-"com.ericng.citllae510"` instead of the binary's cdhash, so later rebuilds keep
-their TCC grants. `MouseKeyTagger` also waits for Input Monitoring before
-touching the HID device (it used to retry every second and log a TCC denial each
-time), and Settings → Permissions starts the event tap by itself when
-Accessibility appears.
+## Signing
+
+`Scripts/create-signing-identity.sh` creates a 10-year self-signed
+code-signing certificate in its own keychain
+(`~/Library/Keychains/citlla-signing.keychain-db`, password in
+`~/Library/Application Support/CitllaE510/signing/`), and `Scripts/build.sh`
+signs with it automatically. The designated requirement is
+
+```
+identifier "com.ericng.citllae510" and certificate root = H"7bddd68a…"
+```
+
+so the app is the same app to TCC across rebuilds, reinstalls and path changes,
+and only binaries signed with that key match. The certificate is intentionally
+not trusted for Gatekeeper; locally built, never quarantined apps launch fine
+(`spctl` rejection is expected).
+
+Falling back to ad hoc (`designated => identifier …`) still survives rebuilds
+but is the weak form: any bundle claiming the identifier matches. Verified on
+2026-11-09 — a copy re-signed ad hoc with the same identifier reported
+`accessibilityTrusted: false` under the certificate requirement; an identical
+copy at a temp path stayed `true`. The first certificate build dropped the old
+ad hoc grants, needing one `tccutil reset` plus a single re-grant.
+
+`MouseKeyTagger` also waits for Input Monitoring before touching the HID device
+(it used to retry every second and log a TCC denial each time), and
+Settings → Permissions starts the event tap by itself when Accessibility
+appears.
 
 ## What the app does now
 

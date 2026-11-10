@@ -154,13 +154,43 @@ Scripts/build.sh --sign ID    # sign with a keychain identity (see below)
 The script stops if a copy is already running, so quit it (or stop it in Xcode)
 before installing.
 
-With no signing identity it re-signs ad hoc, but with a designated requirement
-that names the bundle (`designated => identifier "com.ericng.citllae510"`)
-instead of pinning the binary. TCC matches that requirement, so Accessibility
-and Input Monitoring grants survive later rebuilds. A plain ad hoc signature
-pins the cdhash, which is why a rebuild used to drop the grants.
+### Signing
 
-Signing with a real identity also works and is the way to go if you have one:
+`Scripts/build.sh` signs with a local certificate so TCC grants survive rebuilds:
+
+```sh
+Scripts/create-signing-identity.sh        # once per machine; no-op if it exists
+```
+
+That creates a 10-year self-signed code-signing certificate in a dedicated
+keychain (`~/Library/Keychains/citlla-signing.keychain-db`), and the build script
+picks it up automatically. The resulting designated requirement is
+
+```
+identifier "com.ericng.citllae510" and certificate root = H"…"
+```
+
+which depends on the identifier and the key, not on the build, so Accessibility
+and Input Monitoring stay granted across rebuilds, reinstalls and path changes.
+The certificate is deliberately left untrusted for Gatekeeper; the app is built
+locally and never quarantined, so it launches normally. `spctl` rejecting it is
+expected.
+
+Without that identity the script falls back to ad hoc signing with a
+designated requirement that names only the bundle
+(`designated => identifier "com.ericng.citllae510"`). That also survives
+rebuilds, but it is the weak form: **any** bundle claiming that identifier
+matches it. The certificate form only matches binaries signed with your key.
+
+The first certificate-signed build does not match an older ad hoc grant, so
+reset and grant once:
+
+```sh
+tccutil reset Accessibility com.ericng.citllae510
+tccutil reset ListenEvent com.ericng.citllae510
+```
+
+Signing with a real Apple identity also works and is the way to go if you have one:
 
 ```sh
 Scripts/build.sh --sign "Apple Development: you@example.com (TEAMID)"
@@ -298,9 +328,11 @@ that file (or use **Reset Defaults** in Settings) to start over.
   are not software-remappable.
 - The app is not sandboxed. Event taps and HID access are not compatible with
   the App Sandbox.
-- A local build is signed ad hoc with an identifier-based designated
-  requirement, so rebuilds keep their grants. Moving the app to a different path
-  still counts as a different app to TCC.
+- A local build is signed with a local self-signed certificate by default
+  (`Scripts/create-signing-identity.sh`), so TCC grants are scoped to the bundle
+  id plus that key and survive rebuilds and path changes. Without the identity
+  the fallback is ad hoc with an identifier-only requirement, which rebuilds
+  also survive but which any same-id bundle can match.
 
 ## Troubleshooting
 
@@ -311,9 +343,9 @@ must say *active*. Press **Restart Event Tap**.
 **Middle click does nothing, or the thumb buttons do nothing.**
 Middle click needs Accessibility, and the thumb buttons need Input Monitoring as
 well, because this mouse sends them as `⌃←` / `⌃→` keystrokes. Both cards in
-Settings → Permissions must say *Granted*. Builds made before the stable ad hoc
-requirement was added pinned the binary, so a grant from one of those builds is
-stale; remove Citlla E510 from both privacy lists and add it again once.
+Settings → Permissions must say *Granted*. Builds made before the first locally
+signed release pinned the binary (or used a different identity), so a grant from
+one of those builds is stale; reset and grant once (see **Signing**).
 
 **The thumb buttons do nothing on a different E510.**
 The mouse has shipped with more than one 2.4 GHz receiver. The app recognises
@@ -332,11 +364,14 @@ Drag `CitllaE510.app` from Finder into the Accessibility list, or use the `+`
 button and select it from DerivedData.
 
 **A permission grant seems stale after rebuilding.**
-Builds from `Scripts/build.sh` keep their grants. For an older or differently
-signed copy, reset it and grant it again:
+Builds from `Scripts/build.sh` signed with the local certificate (see
+**Signing**) keep their grants. The one-time exception is the first build that
+switched from the old ad hoc requirement to the certificate, and any copy built
+with a different identity. Reset and grant it again:
 
 ```sh
 tccutil reset Accessibility com.ericng.citllae510
+tccutil reset ListenEvent com.ericng.citllae510
 ```
 
 **Diagnostics says it cannot open the mouse.**
