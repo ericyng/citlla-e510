@@ -12,13 +12,19 @@ final class AppModel {
     let eventTap: EventTapService
     let tagger: MouseKeyTagger
     let loginItem: LoginItemManager
+    /// One frontmost-app cache shared by the event tap and the Overview. It is
+    /// started by `AppDelegate`; before that it holds the app that was in front
+    /// when the process launched.
+    let activeApp: ActiveAppMonitor
 
     private init() {
         let store = ConfigStore()
         let tagger = MouseKeyTagger()
+        let activeApp = ActiveAppMonitor()
         config = store
         self.tagger = tagger
-        eventTap = EventTapService(config: store, tagger: tagger)
+        self.activeApp = activeApp
+        eventTap = EventTapService(config: store, tagger: tagger, activeApp: activeApp)
         loginItem = LoginItemManager.shared
         WindowManager.shared.configure(
             config: store,
@@ -36,6 +42,7 @@ struct CitllaE510App: App {
     @ObservedObject private var config = AppModel.shared.config
     @ObservedObject private var eventTap = AppModel.shared.eventTap
     @ObservedObject private var loginItem = AppModel.shared.loginItem
+    @ObservedObject private var activeApp = AppModel.shared.activeApp
 
     init() {
         StatusProbe.runIfRequested()
@@ -48,6 +55,7 @@ struct CitllaE510App: App {
                 .environmentObject(config)
                 .environmentObject(eventTap)
                 .environmentObject(loginItem)
+                .environmentObject(activeApp)
         } label: {
             MenuBarLabel()
         }
@@ -57,6 +65,7 @@ struct CitllaE510App: App {
                 .environmentObject(config)
                 .environmentObject(eventTap)
                 .environmentObject(loginItem)
+                .environmentObject(activeApp)
                 .environmentObject(WindowManager.shared.state)
         }
         .defaultSize(width: 1080, height: 720)

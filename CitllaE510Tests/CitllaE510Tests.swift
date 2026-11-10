@@ -1646,3 +1646,258 @@ final class MacroEditorTests: XCTestCase {
     }
 }
 
+// MARK: - Profiles
+
+/// Precedence for per-app overrides: an enabled profile wins for a control it
+/// overrides, every other control falls back to the global map, and nothing a
+/// profile does can switch a global action off by accident.
+final class AppProfileTests: XCTestCase {
+    private let chrome = "com.google.Chrome"
+    private let control = NSEvent.ModifierFlags.control.rawValue
+
+    /// A small global map with a bound button (3), a bound second button (2),
+    /// a bound keyboard control (⌃←) and a bound consumer key (volume up), plus
+    /// a Chrome profile that overrides three of the four.
+    private func chromeConfig() -> AppConfig {
+        var config = AppConfig()
+        config.setAction(MouseAction(kind: .system, system: .back), for: 3)
+        config.setAction(MouseAction(kind: .system, system: .forward), for: 2)
+        config.setAction(
+            MouseAction(kind: .system, system: .missionControl),
+            forShortcut: ShortcutBinding.defaults[0].id
+        )
+        let consumer = config.learnConsumerKey(0)
+        config.setAction(MouseAction(kind: .system, system: .mute), forShortcut: consumer)
+
+        config.setProfile(AppProfile(
+            id: chrome,
+            name: "Google Chrome",
+            buttonActions: [3: MouseAction(kind: .system, system: .appExpose)],
+            shortcutActions: [
+                ShortcutBinding.defaults[0].id: MouseAction(kind: .system, system: .showDesktop),
+                consumer: MouseAction(kind: .system, system: .playPause)
+            ]
+        ))
+        return config
+    }
+
+    // MARK: Precedence
+
+    func testProfileOverrideWinsForAButton() {
+        let config = chromeConfig()
+
+        XCTAssertEqual(config.action(for: 3, frontmostBundleID: chrome)?.system, .appExpose)
+        XCTAssertEqual(config.action(for: 3)?.system, .back, "the global map must be untouched")
+    }
+
+    func testProfileOverrideWinsForAKeyboardShortcut() {
+        let config = chromeConfig()
+
+        let overridden = config.action(
+            forKeyboardKeyCode: 123,
+            modifiers: control,
+            frontmostBundleID: chrome
+        )
+        XCTAssertEqual(overridden?.1.system, .showDesktop)
+        XCTAssertEqual(overridden?.0.id, ShortcutBinding.defaults[0].id)
+
+        let global = config.action(forKeyboardKeyCode: 123, modifiers: control)
+        XCTAssertEqual(global?.1.system, .missionControl)
+    }
+
+    func testProfileOverrideWinsForAConsumerKey() {
+        let config = chromeConfig()
+
+        XCTAssertEqual(
+            config.action(forConsumerKey: 0, frontmostBundleID: chrome)?.1.system,
+            .playPause
+        )
+        XCTAssertEqual(config.action(forConsumerKey: 0)?.1.system, .mute)
+    }
+
+    func testControlTheProfileDoesNotOverrideFallsBackToGlobal() {
+        let config = chromeConfig()
+
+        XCTAssertEqual(config.action(for: 2, frontmostBundleID: chrome)?.system, .forward)
+        XCTAssertEqual(
+            config.action(forKeyboardKeyCode: 124, modifiers: control, frontmostBundleID: chrome)?.1.system,
+            .forward
+        )
+    }
+
+    func testProfileCanBindAControlThatIsUnboundGlobally() {
+        // The ninth control ships unbound so the factory ⌃⌘F keeps working. A
+        // profile may still give it a job without changing the global map.
+        var config = AppConfig()
+        let fullScreen = NSEvent.ModifierFlags([.control, .command]).rawValue
+        let ninth = ShortcutBinding(keyCode: 3, modifiers: fullScreen)
+        config.setProfile(AppProfile(
+            id: chrome,
+            name: "Google Chrome",
+            shortcutActions: [ninth.id: MouseAction(kind: .system, system: .spotlight)]
+        ))
+
+        XCTAssertEqual(
+            config.action(forKeyboardKeyCode: 3, modifiers: fullScreen, frontmostBundleID: chrome)?.1.system,
+            .spotlight
+        )
+        XCTAssertFalse(
+            config.action(forKeyboardKeyCode: 3, modifiers: fullScreen)?.1.isBound ?? true,
+            "the global ninth control stays unbound"
+        )
+    }
+
+    // MARK: Ignored profiles
+
+    func testDisabledProfileIsIgnoredEntirely() {
+        var config = chromeConfig()
+        config.profiles[0].enabled = false
+
+        XCTAssertNil(config.profile(forBundleIdentifier: chrome))
+        XCTAssertEqual(config.action(for: 3, frontmostBundleID: chrome)?.system, .back)
+        XCTAssertEqual(
+            config.action(forKeyboardKeyCode: 123, modifiers: control, frontmostBundleID: chrome)?.1.system,
+            .missionControl
+        )
+        XCTAssertEqual(config.action(forConsumerKey: 0, frontmostBundleID: chrome)?.1.system, .mute)
+    }
+
+    func testProfileForTheAppsOwnBundleIsNeverApplied() {
+        var config = chromeConfig()
+        config.setProfile(AppProfile(
+            id: AppConfig.ownBundleIdentifier,
+            name: "Citlla E510",
+            buttonActions: [3: MouseAction(kind: .system, system: .appExpose)]
+        ))
+
+        XCTAssertNil(config.profile(forBundleIdentifier: AppConfig.ownBundleIdentifier))
+        XCTAssertEqual(config.action(for: 3, frontmostBundleID: AppConfig.ownBundleIdentifier)?.system, .back)
+    }
+
+    func testUnknownOrAbsentBundleUsesTheGlobalMap() {
+        let config = chromeConfig()
+        let bundles: [String?] = [nil, "", "com.example.notinstalled"]
+
+        for bundle in bundles {
+            XCTAssertEqual(config.action(for: 3, frontmostBundleID: bundle)?.system, .back)
+            XCTAssertEqual(
+                config.action(forKeyboardKeyCode: 123, modifiers: control, frontmostBundleID: bundle)?.1.system,
+                .missionControl
+            )
+        }
+    }
+
+    func testUnboundOverrideEntryFallsThroughToGlobal() {
+        var config = chromeConfig()
+        // A hand-edited file (or an older editor) can store an action that does
+        // nothing. That must not silently disable the global binding.
+        config.profiles[0].buttonActions[3] = MouseAction()
+        config.profiles[0].shortcutActions[ShortcutBinding.defaults[0].id] = MouseAction()
+
+        XCTAssertEqual(config.action(for: 3, frontmostBundleID: chrome)?.system, .back)
+        XCTAssertEqual(
+            config.action(forKeyboardKeyCode: 123, modifiers: control, frontmostBundleID: chrome)?.1.system,
+            .missionControl
+        )
+    }
+
+    // MARK: Storage
+
+    func testOverrideCountIgnoresUnboundEntries() {
+        var profile = AppProfile(id: chrome, name: "Google Chrome")
+        XCTAssertEqual(profile.overrideCount, 0)
+
+        profile.setButtonAction(MouseAction(kind: .system, system: .back), for: 3)
+        profile.setShortcutAction(MouseAction(kind: .system, system: .mute), for: "consumer-0")
+        XCTAssertEqual(profile.overrideCount, 2)
+
+        // "Use Global" / an empty action removes the override.
+        profile.setButtonAction(nil, for: 3)
+        profile.setShortcutAction(MouseAction(), for: "consumer-0")
+        XCTAssertEqual(profile.overrideCount, 0)
+        XCTAssertTrue(profile.buttonActions.isEmpty)
+        XCTAssertTrue(profile.shortcutActions.isEmpty)
+    }
+
+    func testConfigRoundTripWithProfiles() throws {
+        var config = chromeConfig()
+        config.profiles[0].enabled = false
+
+        let decoded = try JSONDecoder().decode(AppConfig.self, from: JSONEncoder().encode(config))
+
+        XCTAssertEqual(decoded, config)
+        XCTAssertEqual(decoded.profiles.first?.enabled, false)
+        XCTAssertEqual(decoded.profiles.first?.buttonActions[3]?.system, .appExpose)
+    }
+
+    func testOldConfigWithoutProfilesKeyStillDecodes() throws {
+        let json = Data(#"""
+        {
+          "enabled": true,
+          "bindings": [
+            {"button": 3, "action": {"kind": "system", "system": "missionControl"}}
+          ]
+        }
+        """#.utf8)
+        let config = try JSONDecoder().decode(AppConfig.self, from: json)
+
+        XCTAssertTrue(config.profiles.isEmpty)
+        XCTAssertEqual(config.action(for: 3)?.system, .missionControl, "an absent profiles key must not reset the file")
+        XCTAssertEqual(config.bindings.map(\.button), [1, 2, 3])
+    }
+
+    func testOneMalformedProfileDoesNotResetTheConfig() throws {
+        // A single bad entry is dropped; the valid profile and the global map
+        // survive. Failing the whole decode would silently reset every binding.
+        let json = Data(#"""
+        {
+          "bindings": [
+            {"button": 3, "action": {"kind": "system", "system": "missionControl"}}
+          ],
+          "profiles": [
+            42,
+            {"id": "com.example.app", "name": "Example"}
+          ]
+        }
+        """#.utf8)
+        let config = try JSONDecoder().decode(AppConfig.self, from: json)
+
+        XCTAssertEqual(config.profiles.map(\.id), ["com.example.app"])
+        XCTAssertEqual(config.profiles.first?.enabled, true)
+        XCTAssertEqual(config.action(for: 3)?.system, .missionControl)
+    }
+
+    func testResetToDefaultsKeepsProfiles() {
+        var config = chromeConfig()
+        let before = config.profiles
+
+        config.resetToDefaults()
+
+        XCTAssertEqual(config.profiles, before)
+        XCTAssertEqual(config.action(for: 3, frontmostBundleID: chrome)?.system, .appExpose)
+        XCTAssertFalse(config.action(for: 3)?.isBound ?? true)
+    }
+
+    func testRemoveProfileDropsOnlyThatRule() {
+        var config = chromeConfig()
+        config.setProfile(AppProfile(id: "com.example.other", name: "Other"))
+
+        config.removeProfile(id: chrome)
+
+        XCTAssertEqual(config.profiles.map(\.id), ["com.example.other"])
+        XCTAssertEqual(config.action(for: 3, frontmostBundleID: chrome)?.system, .back)
+    }
+}
+
+@MainActor
+final class ActiveAppMonitorTests: XCTestCase {
+    func testStartAndStopAreIdempotent() {
+        let monitor = ActiveAppMonitor()
+
+        monitor.start()
+        monitor.start()
+        monitor.stop()
+        monitor.stop()
+    }
+}
+

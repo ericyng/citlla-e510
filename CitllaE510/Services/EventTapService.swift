@@ -12,6 +12,9 @@ final class EventTapService: ObservableObject {
 
     private let config: ConfigStore
     private let tagger: MouseKeyTagger
+    /// Shared frontmost-app cache. Read per event; `nil` in tests or before the
+    /// app starts, which simply means "use the global map".
+    private let activeApp: ActiveAppMonitor?
     private let logger = Logger(subsystem: "com.ericng.citillae510", category: "event-tap")
     private var tap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -36,10 +39,15 @@ final class EventTapService: ObservableObject {
         SystemDefinedEvent.type
     ]
 
-    init(config: ConfigStore, tagger: MouseKeyTagger) {
+    init(config: ConfigStore, tagger: MouseKeyTagger, activeApp: ActiveAppMonitor? = nil) {
         self.config = config
         self.tagger = tagger
+        self.activeApp = activeApp
     }
+
+    /// The cached frontmost app, read from the monitor without touching
+    /// `NSWorkspace`. `nil` means no profile can apply.
+    private var frontmostBundleID: String? { activeApp?.frontmostBundleID }
 
     /// Starts the event tap if Accessibility access has been granted. Safe to
     /// call repeatedly (for example after the user grants permission).
@@ -165,7 +173,8 @@ final class EventTapService: ObservableObject {
     private func handleMouseDown(_ event: CGEvent) -> Unmanaged<CGEvent>? {
         // CGEvent button numbers are 0-based; HID Button usages are 1-based.
         let button = Int(event.getIntegerValueField(.mouseEventButtonNumber)) + 1
-        guard let action = config.config.action(for: button), action.isBound else {
+        guard let action = config.config.action(for: button, frontmostBundleID: frontmostBundleID),
+              action.isBound else {
             return Unmanaged.passUnretained(event)
         }
         if pressedButtons.contains(button) {
@@ -220,7 +229,11 @@ final class EventTapService: ObservableObject {
         // Match before claiming a sample. The mouse sends its modifier and key
         // as separate events, and the modifier's key-down must not use up the
         // tag meant for the key that follows it.
-        guard let (binding, action) = config.config.action(forKeyboardKeyCode: keyCode, modifiers: modifiers),
+        guard let (binding, action) = config.config.action(
+            forKeyboardKeyCode: keyCode,
+            modifiers: modifiers,
+            frontmostBundleID: frontmostBundleID
+        ),
               action.isBound else {
             return Unmanaged.passUnretained(event)
         }
@@ -266,7 +279,10 @@ final class EventTapService: ObservableObject {
             return nil
         }
 
-        guard let (binding, action) = config.config.action(forConsumerKey: key),
+        guard let (binding, action) = config.config.action(
+            forConsumerKey: key,
+            frontmostBundleID: frontmostBundleID
+        ),
               action.isBound else {
             return Unmanaged.passUnretained(event)
         }

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		08B87AAB9EC060B8D69407C0 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF2B1796042A24B29F49927 /* SettingsView.swift */; };
+		0BE8873E0CCFF1DD4F4F1762 /* ActiveAppMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C62B69F4D4380F363BFC4762 /* ActiveAppMonitor.swift */; };
 		13DF5D44820DBD2149AB5C04 /* ActionsSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30AE21B3A4910775EC6464F /* ActionsSectionView.swift */; };
 		194049572FB71D47724B5058 /* ShortcutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98BED303DDB87F08A81BAC5B /* ShortcutRecorder.swift */; };
 		2ABA85FDBFA980BD44CEF8BA /* MouseReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E3A08F7FD3B7B58B2D20F0B /* MouseReceiver.swift */; };
@@ -22,6 +23,7 @@
 		5062A7858E7DC25E4CFDB31C /* MacroOwner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D2682381E88772E82E377D9 /* MacroOwner.swift */; };
 		51CD7D0179E59DAE5A823702 /* DiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F38D77933A30FA87332C1C2F /* DiagnosticsView.swift */; };
 		538B30846B678CB52472B818 /* EventTapService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9C2BC846F00910BC0F2EF /* EventTapService.swift */; };
+		584365BB69ED06F0F100DB63 /* ProfilesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F465F0F572E0CA6ACE5E7341 /* ProfilesView.swift */; };
 		6427BD8250E409C4F78786C7 /* LoginItemManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 762303EC4CBD6433FA135A6C /* LoginItemManager.swift */; };
 		64944C159F6A1B16D0D5BD24 /* ButtonTester.swift in Sources */ = {isa = PBXBuildFile; fileRef = 558CBB6387AB4B290173F220 /* ButtonTester.swift */; };
 		6EAC4883FECB1EF8F69200C5 /* CitllaE510Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A9937B140635034A1299AEA /* CitllaE510Tests.swift */; };
@@ -100,6 +102,7 @@
 		B30AE21B3A4910775EC6464F /* ActionsSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsSectionView.swift; sourceTree = "<group>"; };
 		B6536CC397D62E4D6F4C6E3C /* MouseMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseMapView.swift; sourceTree = "<group>"; };
 		C211C951E4E989BD57C8A9DB /* WindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowManager.swift; sourceTree = "<group>"; };
+		C62B69F4D4380F363BFC4762 /* ActiveAppMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveAppMonitor.swift; sourceTree = "<group>"; };
 		CD000114864B620F2174EE1E /* MainSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainSidebar.swift; sourceTree = "<group>"; };
 		CE39E862CCCC9BEDBEA2882F /* MouseKeyTagger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseKeyTagger.swift; sourceTree = "<group>"; };
 		D3CA9B7EBE42806FFCBCBDA6 /* ButtonBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonBinding.swift; sourceTree = "<group>"; };
@@ -109,6 +112,7 @@
 		F0D906D7B9660BE552C400BA /* ScrollController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollController.swift; sourceTree = "<group>"; };
 		F3555498B3C43ECFEAE7B9EC /* ActionProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionProbe.swift; sourceTree = "<group>"; };
 		F38D77933A30FA87332C1C2F /* DiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsView.swift; sourceTree = "<group>"; };
+		F465F0F572E0CA6ACE5E7341 /* ProfilesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilesView.swift; sourceTree = "<group>"; };
 		FA09A42C2029743833F1A7E6 /* ConfigStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigStore.swift; sourceTree = "<group>"; };
 		FE6F64D5A5906F3E5AF44204 /* ActionExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionExecutor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -159,6 +163,7 @@
 			isa = PBXGroup;
 			children = (
 				FE6F64D5A5906F3E5AF44204 /* ActionExecutor.swift */,
+				C62B69F4D4380F363BFC4762 /* ActiveAppMonitor.swift */,
 				558CBB6387AB4B290173F220 /* ButtonTester.swift */,
 				81A6CBC2033F0EA390CEFA6C /* DockControl.swift */,
 				24D9C2BC846F00910BC0F2EF /* EventTapService.swift */,
@@ -207,6 +212,7 @@
 				7EBEC1DD683557408C5403C5 /* MenuBarContent.swift */,
 				B6536CC397D62E4D6F4C6E3C /* MouseMapView.swift */,
 				6982D083ACE01075FDB3ED4B /* PermissionsView.swift */,
+				F465F0F572E0CA6ACE5E7341 /* ProfilesView.swift */,
 				39271D60154EC6B23B507639 /* ScrollingView.swift */,
 				9AF2B1796042A24B29F49927 /* SettingsView.swift */,
 				98BED303DDB87F08A81BAC5B /* ShortcutRecorder.swift */,
@@ -321,6 +327,7 @@
 				341749A8B2F1C85FA8509D73 /* ActionPreset.swift in Sources */,
 				334929FFB478DE7FEFABA637 /* ActionProbe.swift in Sources */,
 				13DF5D44820DBD2149AB5C04 /* ActionsSectionView.swift in Sources */,
+				0BE8873E0CCFF1DD4F4F1762 /* ActiveAppMonitor.swift in Sources */,
 				923E842895AA5E0A468FAD2C /* AppConfig.swift in Sources */,
 				BD4FA991A7917918870BD28C /* AppDelegate.swift in Sources */,
 				CF834E45C4FDC6C475F26722 /* AppProfile.swift in Sources */,
@@ -348,6 +355,7 @@
 				2ABA85FDBFA980BD44CEF8BA /* MouseReceiver.swift in Sources */,
 				9E08A205F7E8E9CBDAB36AE3 /* PermissionManager.swift in Sources */,
 				95E515360B345145B7B94E44 /* PermissionsView.swift in Sources */,
+				584365BB69ED06F0F100DB63 /* ProfilesView.swift in Sources */,
 				8A142342F1B87C255F31CF52 /* ScrollController.swift in Sources */,
 				97B8975F36F2F9E77A5EBEE4 /* ScrollingView.swift in Sources */,
 				08B87AAB9EC060B8D69407C0 /* SettingsView.swift in Sources */,
