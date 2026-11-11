@@ -7,14 +7,23 @@ import SwiftUI
 /// The window only exists in `.regular` mode. `MainWindowView` tells
 /// `WindowManager` when it appears and disappears so the Dock icon follows the
 /// window, unless *Keep in Dock* is on.
+///
+/// This is a plain two-column layout rather than a `NavigationSplitView`: on
+/// macOS 26 the split view's Liquid Glass sidebar and its column sizing can let
+/// the content drive the layout to thousands of points tall, which pushes the
+/// sidebar offscreen and breaks selection. A fixed sidebar beside the detail
+/// keeps every section reachable and the sidebar visible.
 struct MainWindowView: View {
     @EnvironmentObject private var windows: MainWindowState
 
     var body: some View {
-        NavigationSplitView {
+        HStack(spacing: 0) {
             MainSidebar(selection: $windows.selection)
                 .listStyle(.sidebar)
-        } detail: {
+                .frame(width: 210)
+
+            Divider()
+
             MainSectionContent(selection: windows.selection)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
