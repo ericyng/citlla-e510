@@ -57,11 +57,11 @@ Know the traps, and repeat them when relevant:
 - `Scripts/check.sh` runs `xcodegen generate` (`Scripts/check.sh:46`), so the
   committed `CitllaE510.xcodeproj` can come back dirty. Say so if it does.
 - The render list is checked against `MainSection.available`
-  (`Scripts/check.sh:70-91`): a section in code without a render, or a render
+  (`Scripts/check.sh:72-91`): a section in code without a render, or a render
   without a section, fails the gate. That assertion is a feature; do not weaken
   it to make a run pass.
 - `--docs` copies the renders into `docs/snapshots/` and cannot be combined with
-  `--no-snapshots` (`Scripts/check.sh:26-34`).
+  `--no-snapshots` (`Scripts/check.sh:26-27,33-36`).
 - The last recorded gate was 137 tests and 13 snapshots
   (`PROGRESS.md`, tail entry `T6 QA + docs`).
 
