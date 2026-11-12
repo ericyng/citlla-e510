@@ -15,6 +15,8 @@ struct ActionsSectionView: View {
 
     @State private var filter: Filter = .all
     @State private var editing: ActionEditorSheet.Target?
+    @State private var pendingKind: ActionKind?
+    @State private var showControlPicker = false
 
     enum Filter: String, CaseIterable, Identifiable {
         case all
@@ -73,7 +75,13 @@ struct ActionsSectionView: View {
             }
         }
         .sheet(item: $editing) { target in
-            ActionEditorSheet(target: target)
+            ActionEditorSheet(target: target, initialKind: pendingKind)
+        }
+        .sheet(isPresented: $showControlPicker) {
+            ControlPickerSheet { target in
+                showControlPicker = false
+                editing = target
+            }
         }
     }
 
@@ -81,8 +89,25 @@ struct ActionsSectionView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Actions")
-                .font(.largeTitle.bold())
+            HStack(alignment: .firstTextBaseline) {
+                Text("Actions")
+                    .font(.largeTitle.bold())
+                Spacer()
+                Button {
+                    pendingKind = .mouseClick
+                    showControlPicker = true
+                } label: {
+                    Label("New Chord", systemImage: "command")
+                }
+                .controlSize(.small)
+                Button {
+                    pendingKind = .sequence
+                    showControlPicker = true
+                } label: {
+                    Label("New Sequence", systemImage: "list.number")
+                }
+                .controlSize(.small)
+            }
             Text(assignedSummary)
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -217,6 +242,10 @@ struct ActionsSectionView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(24)
     }
+
+    // MARK: - Control picker
+
+    // (placeholder)
 
     private var emptySymbol: String {
         switch filter {

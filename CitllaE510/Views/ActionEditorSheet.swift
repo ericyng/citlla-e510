@@ -50,9 +50,19 @@ struct ActionEditorSheet: View {
 
     @State private var draft: MouseAction
 
-    init(target: Target) {
+    let initialKind: ActionKind?
+
+    init(target: Target, initialKind: ActionKind? = nil) {
         self.target = target
-        _draft = State(initialValue: target.action)
+        self.initialKind = initialKind
+        var action = target.action
+        if let kind = initialKind {
+            action.kind = kind
+            if kind == .sequence, action.steps.isEmpty {
+                action.steps = [ActionStep(kind: .keyboardShortcut)]
+            }
+        }
+        _draft = State(initialValue: action)
     }
 
     init(button: ButtonBinding) {
