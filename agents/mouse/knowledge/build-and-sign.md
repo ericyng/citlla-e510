@@ -14,6 +14,15 @@ what a build's `signature` line means, not to run the scripts.
 3. **Ad hoc fallback**: `designated => identifier "com.ericng.citllae510"` —
    `build.sh:144-157`.
 
+**Signing is unconditional** — there is no `--no-sign` flag — so
+`check.sh --no-snapshots`, which calls `build.sh --no-install --no-launch`, still
+signs. Which path it takes depends on machine state: if both
+`citlla-signing.keychain-db` and the password file exist, the gate unlocks that
+keychain and signs with `Citlla E510 Local Signing` (`build.sh:134-142`). That is
+the gate's documented step; it creates and replaces nothing and changes no TCC
+state. Creating, importing or replacing an identity, passing `--sign`, or running
+`security` by hand is never allowed.
+
 The designated requirement with the certificate is
 
 ```

@@ -70,6 +70,18 @@ Use `--no-install --no-launch`; `--no-install` exits before both
 
 ## What green proves — and what it does not
 
+The gate can run at all because the app detects the XCTest host and stands down:
+`AppDelegate.applicationDidFinishLaunching` returns immediately when
+`XCTestConfigurationFilePath` is set — `CitllaE510/AppDelegate.swift:9-12`. No
+event tap, no HID tagger, no menu bar plumbing, no window prompt. Tests are
+hosted (`TEST_HOST` is `CitllaE510.app/Contents/MacOS/CitllaE510`,
+`project.yml:62-63`), so without that guard every gate run would install a real
+session tap.
+
+**That guard is load-bearing.** If someone removes it, `check.sh` starts remapping
+the physical mouse mid-test-suite. Treat any change to those four lines as a
+hardware hazard, not a tidy-up.
+
 Proves: compiles, the test suite passes, the Release bundle has the right id and a
 verifying signature, and (unless `--no-snapshots`) 13 renders are produced with
 the section list in agreement.

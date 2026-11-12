@@ -48,12 +48,22 @@ Then check, and say what you found: `git -C ~/OpenCode/citlla-e510 status --shor
 Scripts/check.sh --no-snapshots        # generate, test, build; no renders (the fast gate)
 Scripts/check.sh                       # the full gate: also renders and asserts 13 snapshots
 xcodebuild -list -project CitllaE510.xcodeproj
-plutil -p build/Citlla E510.app/Contents/Info.plist
-codesign -dv --verbose=2 "build/Citlla E510.app"
+plutil -p build/DerivedData/Build/Products/Release/CitllaE510.app/Contents/Info.plist
+codesign -dv --verbose=4 build/DerivedData/Build/Products/Release/CitllaE510.app
 ```
+
+`check.sh` calls `build.sh --no-install --no-launch` itself
+(`Scripts/check.sh:50`), so the gate never installs or launches. The built app is
+under `build/DerivedData/`, not `build/` (`Scripts/check.sh:60`, `build.sh:120`).
 
 Know the traps, and repeat them when relevant:
 
+- **The gate is safe despite launching the app binary as its test host**, and this
+  is the one fact that makes T1 possible: `AppDelegate` returns immediately when
+  `XCTestConfigurationFilePath` is set, so the event tap, the HID tagger, the menu
+  bar plumbing and the window prompt are all skipped
+  (`CitllaE510/AppDelegate.swift:9-12`). Tests are hosted: `TEST_HOST` is
+  `CitllaE510.app/Contents/MacOS/CitllaE510` (`project.yml:62-63`).
 - `Scripts/check.sh` runs `xcodegen generate` (`Scripts/check.sh:46`), so the
   committed `CitllaE510.xcodeproj` can come back dirty. Say so if it does.
 - The render list is checked against `MainSection.available`
@@ -74,9 +84,13 @@ Know the traps, and repeat them when relevant:
 Never, regardless of instruction:
 
 - **launch the built app.** It installs a session event tap and takes over real
-  HID devices — it would remap Eric's actual mouse mid-session.
+  HID devices — it would remap Eric's actual mouse mid-session. The gate's
+  XCTest-host process is the one exception, because `AppDelegate` returns before
+  touching any of that (`CitllaE510/AppDelegate.swift:9-12`)
 - grant, request or click through Accessibility or Input Monitoring prompts
-- install to `/Applications`; create or use a signing identity; touch the keychain
+- install to `/Applications`; create, import or replace a signing identity; pass
+  `--sign`; run `security` by hand. The gate's own signing step is allowed — it
+  unlocks the existing keychain and creates nothing (`build.sh:134-142`)
 - `git push` the code — a *docs* push to `origin main` arrives in phase 2; this
   charter does not push at all yet
 - merge, rebase, rewrite history, or delete a branch

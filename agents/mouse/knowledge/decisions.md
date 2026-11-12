@@ -35,6 +35,28 @@ without its snapshot.
 Rules out: editing `SECTIONS` in `check.sh`, trimming `available`, or relaxing the
 `rendered != want_section` failure (`check.sh:108-110`) to make a run pass.
 
+## 2026-11-11 — the gate may sign, but nothing may create an identity
+
+Why: `check.sh` calls `build.sh --no-install --no-launch`, and that still runs the
+signing step (`Scripts/check.sh:50`, `build.sh:132-157`). Signing with the existing
+local certificate creates nothing, replaces nothing and changes no TCC state, so it
+is allowed. Creating or replacing the identity, `--sign`, and manual `security`
+calls are not.
+
+Rules out: `--sign`, `SIGN_IDENTITY=`, `create-signing-identity.sh`,
+`security unlock-keychain` typed by hand, `tccutil reset`.
+
+## 2026-11-11 — the XCTest-host process is not an app launch
+
+Why: tests are hosted, so the gate starts `CitllaE510.app/Contents/MacOS/CitllaE510`
+(`project.yml:62-63`). `AppDelegate.swift:9-12` returns before the tap, the tagger
+or any window is touched when `XCTestConfigurationFilePath` is set. Reading "never
+launch the app" strictly would forbid the gate entirely — and that guard is the
+only reason the gate is safe.
+
+Rules out: deleting or reordering that guard, and any "helpful" refactor that moves
+`AppDelegate` work above it.
+
 ## 2026-11-11 — never touch signing or TCC
 
 Why: the certificate is what keeps Accessibility and Input Monitoring across
