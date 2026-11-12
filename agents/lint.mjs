@@ -2,7 +2,9 @@
 //
 // Shape check for project agents. No dependencies, no network.
 //
-//   node agentkit/lint.mjs [--root DIR]      lint one checkout (default: cwd)
+//   node <repo>/agents/lint.mjs [--root DIR]   lint a checkout (default: the
+//                                              repo containing this script)
+//   node agentkit/lint.mjs --root mac-d        lint a checkout from anywhere
 //
 // Validates, for every <root>/agents/<name>/ that has a charter.md:
 //   - charter frontmatter has name (matching the directory) and description,
@@ -14,10 +16,13 @@
 // Exits 1 on any problem, printing one line per problem.
 
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
-import { join, basename } from "node:path";
+import { join, basename, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const args = process.argv.slice(2);
-let root = process.cwd();
+// Default root: the checkout that contains this file (<repo>/agents/lint.mjs -> <repo>),
+// so the deployed copy works from any cwd. --root overrides it.
+let root = dirname(dirname(fileURLToPath(import.meta.url)));
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--root") root = args[++i];
   else if (args[i] === "-h" || args[i] === "--help") {
