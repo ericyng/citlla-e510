@@ -12,9 +12,14 @@ Scaffolded 2026-11-11 (phase 0). No runs yet.
 - found: the one fact that makes the gate runnable by an agent is
   `CitllaE510/AppDelegate.swift:9-12` — the app returns before the event tap when
   `XCTestConfigurationFilePath` is set, and the tests are hosted. Without it every
-  `check.sh` run would install a real session tap. Also: `check.sh` overrides
-  `build.sh`'s dangerous defaults itself (`check.sh:50`), so the gate is safe
-  where a bare `build.sh` is not; signing still runs and there is no `--no-sign`
-  flag; and `PROGRESS.md:114-115` still claims nothing is pushed, which is false.
+  `check.sh` run would install a real session tap. The companion guard is
+  `ConfigStore.isEphemeralLaunch` (`ConfigStore.swift:25-45`), which keeps test and
+  `--snapshot` runs off the live `config.json`. The full gate is *not* purely
+  passive, though: the `tester` and `main-advanced` renders mount the tester pane
+  and can start a listen-only tap, so agent runs use `--no-snapshots`. Also:
+  hardened runtime is **off** (`project.yml:37`), not applied at signing as this
+  file first claimed; and `check.sh:114`'s skip string does not match
+  `Snapshot.swift:75`.
 - wrote: `knowledge/{architecture,profiles-and-actions,permissions,gate-and-docs,build-and-sign,decisions,known-issues}.md`,
-  `knowledge/README.md`, charter T1 + prohibitions.
+  `knowledge/README.md`, charter T1 + prohibitions, `inbox.md` (one proposal, two
+  open questions).

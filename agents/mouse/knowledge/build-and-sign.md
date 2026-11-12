@@ -57,7 +57,7 @@ Signing step only unlocks the keychain; it never touches TCC
 2. Tests in Debug into `build/DerivedData` — `build.sh:89-107`; the printed count
    comes from grepping the log.
 3. Build the chosen configuration — `build.sh:110-128`; up to 5 warnings printed,
-   never fatal (`:131`).
+   never fatal (`build.sh:123`).
 4. Sign — `build.sh:132-157`.
 5. Verify the bundle — `build.sh:161+` (id, executable, version, `--verbose=4`
    signature, arch).
@@ -68,15 +68,19 @@ Signing step only unlocks the keychain; it never touches TCC
 `build/` is gitignored (`build/`, `DerivedData/` — `.gitignore:2-3`), so build
 output never belongs in a commit.
 
-## Entitlements
+## Entitlements and hardened runtime
 
 `CitllaE510/CitllaE510.entitlements` is an **empty dict** on 2026-11-11 — no
-sandbox. Hardened runtime comes from the `--options runtime` flag at signing
-(`build.sh:137-153`), not from an entitlement.
+sandbox. Hardened runtime is **off**: `ENABLE_HARDENED_RUNTIME: NO`
+(`project.yml:37`), and the signing step passes no `--options runtime`
+(`grep -rn "options runtime\|--options" Scripts/ CitllaE510/ project.yml` → no
+matches beyond the setting itself). `build.sh` signs with
+`--identifier/--entitlements` only (`build.sh:134-157`).
 
-Consequence worth stating plainly: Accessibility and Input Monitoring are the
-only gates on the event tap. There is no sandbox to constrain it, and no
-entitlement to forget — so a `tccutil` reset is the whole recovery story.
+Consequence worth stating plainly: no sandbox **and** no hardened runtime, so
+Accessibility and Input Monitoring are the only gates on the event tap. There is
+nothing an entitlement could withhold, so a `tccutil` reset is the whole recovery
+story. Do not reason about this app as if it were hardened — it is not.
 
 ## Verifying a bundle without installing
 

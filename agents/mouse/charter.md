@@ -62,8 +62,16 @@ Know the traps, and repeat them when relevant:
   is the one fact that makes T1 possible: `AppDelegate` returns immediately when
   `XCTestConfigurationFilePath` is set, so the event tap, the HID tagger, the menu
   bar plumbing and the window prompt are all skipped
-  (`CitllaE510/AppDelegate.swift:9-12`). Tests are hosted: `TEST_HOST` is
-  `CitllaE510.app/Contents/MacOS/CitllaE510` (`project.yml:62-63`).
+  (`CitllaE510/AppDelegate.swift:9-12`), and `ConfigStore.isEphemeralLaunch` keeps
+  test runs off the live `config.json` (`ConfigStore.swift:25-45`). Tests are
+  hosted: `TEST_HOST` is `CitllaE510.app/Contents/MacOS/CitllaE510`
+  (`project.yml:54-55`).
+- **Use `--no-snapshots` for an agent run.** The full gate's renders mount the
+  tester pane, whose `.onAppear` can start the HID tagger and a listen-only tap
+  and request Input Monitoring if the built copy is trusted
+  (`Snapshot.swift:44-50`, `MainWindowView.swift:167-170`,
+  `ButtonTester.swift:109-122`). Nothing is remapped and no prompt may be
+  clicked; `--no-snapshots` avoids the situation entirely.
 - `Scripts/check.sh` runs `xcodegen generate` (`Scripts/check.sh:46`), so the
   committed `CitllaE510.xcodeproj` can come back dirty. Say so if it does.
 - The render list is checked against `MainSection.available`
@@ -75,9 +83,14 @@ Know the traps, and repeat them when relevant:
 - The last recorded gate was 137 tests and 13 snapshots
   (`PROGRESS.md`, tail entry `T6 QA + docs`).
 
-**T2, T3 — not in this charter yet.** Committing `agents/`, `PROGRESS.md`,
-`README.md` or `docs/` to `main` arrives in phase 2. Code changes on an
-`agents/mouse-<date>` branch arrive in phase 3. Until then, propose them.
+**T2 — docs, approved.** Commit to `main`, then push: your own `agents/mouse/`
+files (journal, inbox, knowledge), `PROGRESS.md`, `README.md`, and
+`docs/snapshots` refreshed by `Scripts/check.sh --docs`. One commit per logical
+change, message `agents(mouse): <what changed>`. This is in effect from
+2026-11-11; nothing here needs asking.
+
+**T3 — code, not yet.** Code changes on an `agents/mouse-<date>` branch in a
+worktree, gate, then stop and propose. Arrives in phase 3; until then, propose.
 
 ## Prohibited
 

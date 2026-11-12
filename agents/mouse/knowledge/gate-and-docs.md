@@ -42,7 +42,12 @@ This is the part with real value, and it must not be weakened:
   `check.sh:104-110`.
 - Section list today: overview, buttons, actions, profiles, scrolling, advanced,
   permissions, about — `MainSection.swift:49-51`.
-- Exit 3 / "no window to snapshot" is a skip, not a failure — `check.sh:114-117`.
+- The "no window to snapshot" skip is **latent-broken**: `check.sh:114` greps for
+  `no window to snapshot`, while `Snapshot.swift:75` prints
+  `no window content to snapshot`, so the skip can never fire and the case would
+  be reported as a failure (`check.sh:118-119`). It is near-unreachable — exit 3
+  only happens when `window.contentView` is nil (`Snapshot.swift:74-77`) — but do
+  not describe the skip as working. A fix is proposed in `inbox.md`.
 
 Weakening this assertion to make a run pass is a T4-class act: it removes the only
 check that the sidebar and the snapshot set agree.
@@ -75,12 +80,34 @@ The gate can run at all because the app detects the XCTest host and stands down:
 `XCTestConfigurationFilePath` is set — `CitllaE510/AppDelegate.swift:9-12`. No
 event tap, no HID tagger, no menu bar plumbing, no window prompt. Tests are
 hosted (`TEST_HOST` is `CitllaE510.app/Contents/MacOS/CitllaE510`,
-`project.yml:62-63`), so without that guard every gate run would install a real
+`project.yml:54-55`), so without that guard every gate run would install a real
 session tap.
 
-**That guard is load-bearing.** If someone removes it, `check.sh` starts remapping
-the physical mouse mid-test-suite. Treat any change to those four lines as a
-hardware hazard, not a tidy-up.
+`ConfigStore` has the matching guard for settings: `isEphemeralLaunch` is true
+under XCTest and for `--snapshot`/`--status`/`--perform`/`--post-shortcut`/
+`--coredock`, and such a launch writes to a throwaway directory rather than the
+live `config.json` — `ConfigStore.swift:25-45`. Without it every test run would
+rewrite Eric's real bindings.
+
+**Both guards are load-bearing.** If someone removes either, the gate edits real
+settings and installs a real tap. Treat them as hardware, not tidy-up.
+
+### The full gate's renders are not purely passive
+
+Each render launches the built binary with `--snapshot`; `Snapshot.runIfRequested()`
+returns before the tap (`AppDelegate.swift:13`), and the snapshot honours
+`isEphemeralLaunch`. But the `tester` render and the `main-advanced` render mount
+the tester pane (`Snapshot.swift:44-50`, default pane `.tester` at
+`WindowManager.swift:46`), whose `.onAppear` calls `tester.start()`
+(`MainWindowView.swift:167-170`). If the built copy is Accessibility-trusted that
+starts the HID tagger and creates a **listen-only** tap, and requests Input
+Monitoring when it is missing (`ButtonTester.swift:109-122`).
+
+A listen-only tap cannot suppress input and the process exits, so nothing is
+remapped. But it is a live tap, and it can raise a permission prompt — which is
+why an agent uses `check.sh --no-snapshots` and never clicks through a prompt.
+`check.sh:10`'s "snapshots need no permission" is true of the drawing, not of the
+tester pane's appear hook.
 
 Proves: compiles, the test suite passes, the Release bundle has the right id and a
 verifying signature, and (unless `--no-snapshots`) 13 renders are produced with
@@ -97,7 +124,7 @@ Does not prove:
 
 — `PROGRESS.md:103-113`.
 
-Warnings never fail the build; they are printed and skipped (`build.sh:133`).
+Warnings never fail the build; they are printed and skipped (`build.sh:123`).
 
 ## Recorded gate result
 
