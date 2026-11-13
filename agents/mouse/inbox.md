@@ -16,6 +16,11 @@ proposals a day and 6 waiting at once.
   byte-identical to `main-advanced.png` (both `83d822f…`), so `docs/snapshots/`
   holds nine files for eight distinct images. Dropping the copy would be a code
   change (`check.sh:135-142`) and the file would then need deleting from `docs/`.
+- 2026-11-12 — Should `snap()` test the render's exit status instead of grepping
+  its log for a string? `check.sh:102,114` treats "skip" as "stderr/stdout
+  contains `no window to snapshot`", while `Snapshot.swift:76` (on `main`) is
+  already `exit(3)`. The strings agree after `4a792e6`, but the exit code is the
+  stabler contract; changing this is beyond the one-string fix.
 
 ## proposals
 
