@@ -38,14 +38,16 @@ direction, and the honest pointer-speed link:
 ![Scrolling](docs/snapshots/main-scrolling.png)
 
 **Advanced** — the button tester and diagnostics as two panes of the main
-window. The tester shows what each control sends and counts the steps of a
-sequence as it runs:
+window. The capture below is the Button Tester pane, which shows what each
+control sends and counts the steps of a sequence as it runs:
 
 ![Advanced, Button Tester pane](docs/snapshots/main-advanced.png)
 
 The rest of the window: [Buttons](docs/snapshots/main-buttons.png) ·
 [Permissions](docs/snapshots/main-permissions.png) ·
-[About](docs/snapshots/main-about.png)
+[About](docs/snapshots/main-about.png). [tester.png](docs/snapshots/tester.png)
+is the identical Button Tester capture, published for the `--window tester`
+entry point.
 
 ## Window and Dock
 
