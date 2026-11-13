@@ -9,11 +9,14 @@ rather than dropping the source.
   `.accessory`, grows a real window on demand (`README.md:318-320`).
 - macOS 15+, Swift 6 language mode — `project.yml:5,11`.
 - Bundle id `com.ericng.citllae510` — `project.yml:26`.
-- Main window is one `NavigationSplitView` with eight sections in a fixed order:
-  overview, buttons, actions, profiles, scrolling, advanced, permissions, about —
-  `CitllaE510/Views/MainSection.swift:10-17`, `:49-51` (`available`).
+- The main window is a fixed 210 pt sidebar beside the detail pane
+  (`8e15ba1` replaced the `NavigationSplitView` after its Liquid Glass sidebar
+  could be pushed offscreen on tall sections —
+  `CitllaE510/Views/MainWindowView.swift:12-23`), with eight sections in a fixed
+  order: overview, buttons, actions, profiles, scrolling, advanced, permissions,
+  about — `CitllaE510/Views/MainSection.swift:10-17`, `:49-51` (`available`).
 - The tester and diagnostics are panes of **Advanced**, not separate windows
-  (`PROGRESS.md:165-166`).
+  (`PROGRESS.md:174-175`).
 
 ## The event tap
 
@@ -26,7 +29,7 @@ rather than dropping the source.
   `keyUp`, and the system-defined type (`CGEventType` raw 14) —
   `EventTapService.swift:47-56`, raw value at `KeyCodeMap.swift:10-12`.
 - Head insert is deliberate: the tester tap must see buttons the remapper
-  swallows a moment later (`PROGRESS.md:286-288`).
+  swallows a moment later (`PROGRESS.md:295-297`).
 - If the system disables the tap (timeout or user input) it re-enables itself —
   `EventTapService.swift:128-135`.
 - `startIfNeeded()` is safe to call repeatedly and refuses to start without
@@ -62,9 +65,9 @@ apart from the keyboard needs the mouse's own HID reports:
 - Attribution window is **120 ms** — `MouseKeyTagger.swift:44`.
 - It must be a background loop: reports have to be recorded before the
   main-thread tap callback runs for the matching key event
-  (`PROGRESS.md:289-291`).
+  (`PROGRESS.md:298-300`).
 - The tagger only starts once Input Monitoring is granted, so it no longer logs a
-  TCC denial every second (`PROGRESS.md:141-143`).
+  TCC denial every second (`PROGRESS.md:150-152`).
 
 ## Receivers
 
@@ -78,7 +81,7 @@ Two E510 receiver revisions exist, with different IDs but the same interfaces �
 
 `MouseReceiver.known` at `MouseReceiver.swift:32-35`; exact-pair
 `IOHIDManager` matching dictionaries at `:37-41`. Diagnostics adds vendor-only
-fallbacks; the tagger stays on exact IDs (`PROGRESS.md:324-327`).
+fallbacks; the tagger stays on exact IDs (`PROGRESS.md:333-336`).
 
 ## Frontmost app
 
@@ -110,7 +113,7 @@ A `nil` value simply means no profile applies (`EventTapService.swift:15-18`).
 ## System actions
 
 Symbolic hotkeys never fire from synthetic events, whatever the source or tap —
-`PROGRESS.md:171-179`. `DockControl` therefore asks the Dock:
+`PROGRESS.md:180-188`. `DockControl` therefore asks the Dock:
 
 | action | route |
 | --- | --- |
@@ -119,14 +122,14 @@ Symbolic hotkeys never fire from synthetic events, whatever the source or tap �
 | Launchpad | `CoreDockSendNotification("com.apple.launchpad.toggle")` |
 | App Exposé | `AXShowExpose` on the frontmost app's Dock tile |
 
-— `PROGRESS.md:181-189`. All four are toggles (`PROGRESS.md:193-197`).
-Still unsolved: Spotlight and Lock Screen (`PROGRESS.md:199-201`).
+— `PROGRESS.md:190-198`. All four are toggles (`PROGRESS.md:202-206`).
+Still unsolved: Spotlight and Lock Screen (`PROGRESS.md:208-210`).
 
 ## Snapshot rendering
 
 `--snapshot` renders the app's own views with `cacheDisplay`, offscreen, needing
 no screen-recording permission — `Scripts/check.sh:10-11`,
-`PROGRESS.md:169,281-285`. It is the only layout check available on this machine.
+`PROGRESS.md:178,290-294`. It is the only layout check available on this machine.
 It **falls back to Overview for an unknown section**, which is why the gate
 asserts the reported `section=` (`check.sh:104-110`).
 
@@ -134,4 +137,4 @@ asserts the reported `section=` (`check.sh:104-110`).
 
 The watcher-equivalent risks here are real hardware: tilt sign, the 250 ms quiet
 window, `NSOpenPanel` app picking, profile switching in a live app, and the Dock
-icon. None can be proved offscreen — `PROGRESS.md:103-113`. See `gate-and-docs.md`.
+icon. None can be proved offscreen — `PROGRESS.md:112-122`. See `gate-and-docs.md`.

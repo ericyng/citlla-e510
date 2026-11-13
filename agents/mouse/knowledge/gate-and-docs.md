@@ -122,16 +122,22 @@ Does not prove:
 - The Dock icon or ⌘-Tab entry: snapshots render the sidebar offscreen and this
   machine grants no screen recording.
 
-— `PROGRESS.md:103-113`.
+— `PROGRESS.md:112-122`.
 
 Warnings never fail the build; they are printed and skipped (`build.sh:123`).
 
 ## Recorded gate result
 
+2026-11-12, T2 acceptance run: `Scripts/check.sh --no-snapshots` exited 0 —
+**137 tests passed**, Release build, `signed with "Citlla E510 Local Signing"`,
+bundle verified (`com.ericng.citllae510`, 0.1.0, x86_64 arm64), snapshots
+skipped, and `xcodegen` reported `CitllaE510.xcodeproj up to date` so the tree
+stayed clean.
+
 2026-11-09, T6 QA + docs: **137 tests, 13 snapshots**, Release build,
 certificate signing, bundle checks. `--docs` exited 0 and refreshed
 `docs/snapshots/`. `build.sh --no-install --no-launch` green —
-`PROGRESS.md:90-93,349-350`.
+`PROGRESS.md:99-102,358-359`.
 
 Test count is `grep -c 'func test' CitllaE510Tests/CitllaE510Tests.swift` → 137
 (2026-11-11), which matches.
@@ -139,11 +145,18 @@ Test count is `grep -c 'func test' CitllaE510Tests/CitllaE510Tests.swift` → 13
 ## Docs pipeline
 
 - `docs/snapshots/` holds `main-*.png` (8) and `tester.png` (9 files, listed by
-  `ls docs/snapshots/`).
+  `ls docs/snapshots/`). `tester.png` is byte-identical to `main-advanced.png`
+  (`md5` → `83d822fe3b453c5c761e36b9450f91cc`): `--window tester` is the
+  Advanced section with the Button Tester pane, which is the pane Advanced shows
+  by default. The README cites both.
+- Those nine files were last written at `44177d6` (2026-11-09) and predate
+  `8e15ba1` (sidebar layout) and `821e0df` (Actions **New Chord** / **New
+  Sequence**), so they are stale — see `known-issues.md`; refreshing them is
+  proposed in `inbox.md` and is Eric's call, not an agent run.
 - The README Screenshots section shows the real main window with captions checked
-  against OCR of the renders — `PROGRESS.md:81-84`.
+  against OCR of the renders — `PROGRESS.md:90-93`.
 - The old `docs/screenshots/` directory was deleted; nothing references it —
-  `PROGRESS.md:84`.
+  `PROGRESS.md:93`.
 - Regenerate with `Scripts/check.sh --docs`; the renders land in
   `build/snapshots`, then get copied — `check.sh:62,135-142`.
 
@@ -151,4 +164,4 @@ Test count is `grep -c 'func test' CitllaE510Tests/CitllaE510Tests.swift` → 13
 
 `screencapture` is not available, but the PNGs are ordinary files: read them
 directly. Composite onto white first — panes without an opaque list background
-come out transparent (`PROGRESS.md:283-285`).
+come out transparent (`PROGRESS.md:292-294`).

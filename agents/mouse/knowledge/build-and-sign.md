@@ -31,24 +31,24 @@ identifier "com.ericng.citllae510" and certificate root = H"…"
 
 so TCC treats the app as the same app across rebuilds, reinstalls and path
 changes, and only binaries signed with that key match — `README.md:286-293`,
-`PROGRESS.md:123-130`.
+`PROGRESS.md:132-139`.
 
 Ad hoc survives rebuilds too but is the weak form: **any** bundle claiming the
 identifier matches — `README.md:298-302`. This was verified, not assumed: a copy
 re-signed ad hoc with the same identifier reported `accessibilityTrusted: false`
 under the certificate requirement, while an identical copy at a temp path stayed
-`true` (`PROGRESS.md:134-139`).
+`true` (`PROGRESS.md:143-148`).
 
 ## The certificate script
 
 `Scripts/create-signing-identity.sh` creates a **10-year** self-signed
 code-signing certificate in its own keychain; no-op if it exists —
-`README.md:280-286`, `PROGRESS.md:119-122`. The certificate is deliberately
+`README.md:280-286`, `PROGRESS.md:128-131`. The certificate is deliberately
 untrusted for Gatekeeper: the app is built locally and never quarantined, so
 `spctl` rejecting it is expected (`README.md:294-296`).
 
 Signing step only unlocks the keychain; it never touches TCC
-(`PROGRESS.md:147-149`).
+(`PROGRESS.md:156-158`).
 
 ## What the build does
 

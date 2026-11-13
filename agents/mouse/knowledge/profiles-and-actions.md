@@ -22,34 +22,34 @@ Details that are easy to get wrong:
   `AppConfig.swift:146-149`.
 - `frontmostBundleID` defaults to `nil` so every older caller keeps the plain
   global lookup — `AppConfig.swift:143-145`.
-- Profiles survive *Reset to defaults* (`PROGRESS.md:45`).
+- Profiles survive *Reset to defaults* (`PROGRESS.md:52`).
 
 ## Action kinds
 
 macOS actions (Mission Control, Show Desktop, Launchpad, screenshot…), any
 keyboard shortcut, mouse clicks, open app / URL / shell command —
-`PROGRESS.md:157`. Mission Control, App Exposé, Show Desktop and Launchpad go
+`PROGRESS.md:166`. Mission Control, App Exposé, Show Desktop and Launchpad go
 through `DockControl`; everything else is posted as events — same line, and
 `architecture.md` for why.
 
 - `EventSink` is the seam: the real sink posts marked events
   (`ActionExecutor.swift:144`), the tester's silent sink counts steps without
-  posting — `PROGRESS.md:160`.
+  posting — `PROGRESS.md:169`.
 - Consumer-key bindings exist (`ShortcutBinding.source == .consumer`) but nothing
-  in the UI creates one yet — `PROGRESS.md:259-262`.
+  in the UI creates one yet — `PROGRESS.md:268-271`.
 
 ## Which buttons actually exist
 
 The hardware reports buttons 1–3 only. Buttons 4–8 are trimmed from older configs
-on load (`ButtonBinding.retiredButtons`, `PROGRESS.md:328-329`). The thumb buttons
+on load (`ButtonBinding.retiredButtons`, `PROGRESS.md:337-338`). The thumb buttons
 are **not** buttons 4/5 — they are mouse-sent `⌃←` / `⌃→` keystrokes
-(`PROGRESS.md:32-35`), and callout 9 is `⌃⌘F` (`PROGRESS.md:219,225-228`).
+(`PROGRESS.md:35-38`), and callout 9 is `⌃⌘F` (`PROGRESS.md:228,234-237`).
 
 ## Chords
 
 A click with `⌃⌥⇧⌘` held **for real** around it, through the shared
 `withModifiers` helper, so the app receives a genuine chord rather than a
-simulated modifier state — `PROGRESS.md:158`.
+simulated modifier state — `PROGRESS.md:167`.
 
 ## Sequences (caps)
 
@@ -64,22 +64,22 @@ simulated modifier state — `PROGRESS.md:158`.
 - When the total cap would be exceeded, the run stops early and logs how many of
   how many steps ran — `MacroRunner.swift:69-72`.
 - One run per owner, with cancel-and-restart; a `defer` releases modifiers —
-  `PROGRESS.md:159`.
+  `PROGRESS.md:168`.
 - Switching remapping off cancels in-flight runs — `EventTapService.swift:141-151`.
 
 ## Presets
 
 `ActionPreset.all` fills the editor: Copy → Paste, Screenshot Area to Clipboard,
 Safari: New Tab, Finder: New Folder, Open App → New Window, ⌘-Click —
-`PROGRESS.md:160`.
+`PROGRESS.md:169`.
 
 ## Tester
 
 A listen-only tap at head insert, highlighting and counting diagram controls,
 with a raw log and *Copy Report*. Mouse-sent keystrokes are labelled **Mouse key**
-and marked bindable; keyboard events are labelled separately — `PROGRESS.md:165`.
+and marked bindable; keyboard events are labelled separately — `PROGRESS.md:174`.
 It uses `peekKeyPress()` so it cannot suppress anything or steal an attribution
-sample from the remapper (`PROGRESS.md:286-288`).
+sample from the remapper (`PROGRESS.md:295-297`).
 
 ## Tilt actions
 
@@ -90,4 +90,4 @@ stops scrolling sideways (`EventTapService.swift:208-211`).
 The **axis sign is unverified on hardware**: a positive horizontal delta maps to
 "right" as a convention taken from the tester's labelling, and swapping it is a
 one-line change in `TiltDirection.direction(forHorizontalDelta:)` —
-`PROGRESS.md:253-258`.
+`PROGRESS.md:262-267`.
