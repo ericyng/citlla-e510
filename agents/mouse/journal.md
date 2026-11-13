@@ -50,3 +50,27 @@ Scaffolded 2026-11-11 (phase 0). No runs yet.
   `tester.png` duplicate, 2026-11-12 gate); remapped every `PROGRESS.md:line`
   citation in `knowledge/` after PROGRESS grew by nine lines; added one proposal
   and one open question to `inbox.md`.
+
+## 2026-11-12 live
+- did: T3 fix for the dead exit-3 skip, on branch `agents/mouse-2026-11-12`
+  (worktree `~/OpenCode/.agents/mouse-2026-11-12`, commit `4a792e6`) — not
+  merged, not pushed. Changed the producer, not the consumer: `Snapshot.swift`
+  now prints `no window to snapshot`, the exact string `check.sh:114` greps and
+  `check.sh:93` already documents, so comment, grep and print agree with one
+  file changed. Gate in the worktree: `Scripts/check.sh --no-snapshots` exit 0,
+  **137 tests passed**, Release build, `Citlla E510 Local Signing`, bundle
+  verified, snapshots skipped; `xcodegen` said `CitllaE510.xcodeproj up to
+  date`, so only `Snapshot.swift` was modified. Read-only proof:
+  `grep -rn "no window" Scripts/check.sh CitllaE510/Services/Snapshot.swift`
+  shows `check.sh:93`, `check.sh:114` and `Snapshot.swift:76` all say
+  `no window to snapshot`. The nil-`contentView` path itself was not exercised:
+  that needs a render, which an agent does not run.
+- found: the two files are coupled by a log string, not by the exit code —
+  `snap()` captures the output and greps it, so any future rewording in
+  `Snapshot.swift` silently kills the skip again. The one-line comment at the
+  print is now the only warning at the edit site; `check.sh:93-94` is the one at
+  the consumer.
+- wrote: `knowledge/gate-and-docs.md` (branch status and 2026-11-12 T3 gate
+  record), `inbox.md` (proposal to `awaiting Eric` with the branch, and the
+  2026-11-11 question resolved). No `PROGRESS.md`, `README.md` or `docs/`
+  change: the code is unmerged, so nothing on `main` describes it yet.

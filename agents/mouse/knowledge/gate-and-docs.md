@@ -42,12 +42,14 @@ This is the part with real value, and it must not be weakened:
   `check.sh:104-110`.
 - Section list today: overview, buttons, actions, profiles, scrolling, advanced,
   permissions, about — `MainSection.swift:49-51`.
-- The "no window to snapshot" skip is **latent-broken**: `check.sh:114` greps for
-  `no window to snapshot`, while `Snapshot.swift:75` prints
+- The "no window to snapshot" skip is **latent-broken on `main`**: `check.sh:114`
+  greps for `no window to snapshot`, while `Snapshot.swift:75` prints
   `no window content to snapshot`, so the skip can never fire and the case would
   be reported as a failure (`check.sh:118-119`). It is near-unreachable — exit 3
   only happens when `window.contentView` is nil (`Snapshot.swift:74-77`) — but do
-  not describe the skip as working. A fix is proposed in `inbox.md`.
+  not describe the skip as working. A fix is on branch `agents/mouse-2026-11-12`
+  (`4a792e6`: `Snapshot.swift:76` prints `no window to snapshot`, `--no-snapshots`
+  exit 0, 137 tests), awaiting Eric; `main` is unchanged until it merges.
 
 Weakening this assertion to make a run pass is a T4-class act: it removes the only
 check that the sidebar and the snapshot set agree.
@@ -127,6 +129,12 @@ Does not prove:
 Warnings never fail the build; they are printed and skipped (`build.sh:123`).
 
 ## Recorded gate result
+
+2026-11-12, T3 branch `agents/mouse-2026-11-12` in worktree
+`~/OpenCode/.agents/mouse-2026-11-12`: `Scripts/check.sh --no-snapshots` exited
+0 — **137 tests passed**, Release build, `Citlla E510 Local Signing`, bundle
+verified, snapshots skipped, `xcodegen` reported the project up to date, and the
+tree held only the one modified file.
 
 2026-11-12, T2 acceptance run: `Scripts/check.sh --no-snapshots` exited 0 —
 **137 tests passed**, Release build, `signed with "Citlla E510 Local Signing"`,

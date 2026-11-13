@@ -9,7 +9,9 @@ proposals a day and 6 waiting at once.
   bug or intentional? `Snapshot.swift:75` prints `no window content to snapshot`,
   so the documented skip can never fire. Exit 3 only happens when
   `window.contentView` is nil (`Snapshot.swift:74-77`), which is
-  near-unreachable, so this is latent rather than active.
+  near-unreachable, so this is latent rather than active. — resolved
+  2026-11-12: a real bug, fixed on branch `agents/mouse-2026-11-12`
+  (`4a792e6`), awaiting Eric; `main` still has the mismatch.
 - 2026-11-12 — Should `check.sh --docs` keep publishing `tester.png`? It is
   byte-identical to `main-advanced.png` (both `83d822f…`), so `docs/snapshots/`
   holds nine files for eight distinct images. Dropping the copy would be a code
@@ -23,7 +25,8 @@ proposals a day and 6 waiting at once.
 - `check.sh:114` greps for `no window to snapshot`, `Snapshot.swift:75` prints
   `no window content to snapshot`, so the skip at `check.sh:114-117` is dead and
   the case would be reported as a hard failure. Change one string.
-- Status: waiting
+- Status: awaiting Eric — branch `agents/mouse-2026-11-12` (`4a792e6`), gate
+  `--no-snapshots` exit 0, 137 tests, not pushed, not merged.
 
 ### Refresh `docs/snapshots/` — every render predates the current window
 
