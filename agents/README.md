@@ -13,7 +13,7 @@ event tap and remap Eric's mouse.
 ## Dispatch
 
 ```
-subagent_type: general-purpose
+subagent_type: general          # "general-purpose" in Claude Code
 prompt: <body of agents/mouse/charter.md, everything after the closing --->
         + "" +
         root: /Users/ericng/OpenCode/citlla-e510
@@ -32,4 +32,6 @@ Ends its turn with six sections: `Answer`, `Did`/`Would do`, `Proposes`,
 node agents/lint.mjs          # shape of charter, journal, inbox
 ```
 
-Phase 0: read and verify only. Nothing here commits or pushes yet.
+T2 is in effect: journal, knowledge, `PROGRESS.md`, `README.md`, `docs/` and
+`docs/snapshots` commit straight to `main` and push to `origin main`. Code is
+T3: a branch in a worktree, the gate, then a proposal.
