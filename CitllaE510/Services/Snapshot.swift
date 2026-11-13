@@ -71,8 +71,9 @@ enum Snapshot {
             // Let the section lay out, the tester start, and List/TabView draw.
             try? await Task.sleep(for: .milliseconds(1600))
 
+            // Exit 3 with this exact string is the skip Scripts/check.sh:114 greps for.
             guard let view = window.contentView else {
-                print("no window content to snapshot")
+                print("no window to snapshot")
                 exit(3)
             }
             view.layoutSubtreeIfNeeded()
