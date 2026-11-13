@@ -1,6 +1,6 @@
 # Progress
 
-Last updated: 2026-11-09
+Last updated: 2026-11-12
 
 Where the Citlla E510 app stands, what was learned about the mouse, and what is
 next. `README.md` is the user-facing documentation; this file is the working
@@ -15,10 +15,13 @@ log.
   codes, shortcut bindings, media-key decoding, receiver matching, and the
   diagram's nine callouts).
 - Menu bar app (`LSUIElement`) that starts in `.accessory` and grows a real main
-  window (`NavigationSplitView`) when opened. The window puts the app in
-  `.regular` — Dock icon, app menu, ⌘-Tab entry — and closing it goes back to
-  `.accessory`; *Keep in Dock* keeps it regular all the time. Sidebar, in order:
-  Overview, Buttons, Actions, Profiles, Scrolling, Advanced, Permissions, About.
+  window when opened: a fixed 210 pt sidebar beside the detail pane. `8e15ba1`
+  replaced the `NavigationSplitView`, whose Liquid Glass sidebar could let a tall
+  section drive the window thousands of points and push the sidebar offscreen on
+  macOS 26. The window puts the app in `.regular` — Dock icon, app menu, ⌘-Tab
+  entry — and closing it goes back to `.accessory`; *Keep in Dock* keeps it
+  regular all the time. Sidebar, in order: Overview, Buttons, Actions, Profiles,
+  Scrolling, Advanced, Permissions, About.
 - Current bindings in `~/Library/Application Support/CitllaE510/config.json`:
   buttons 1–2 pass through, 3 → Mission Control. Only buttons 1–3 are listed;
   the mouse never sends 4–8, and rows for them from older configs are trimmed
@@ -39,6 +42,10 @@ log.
   (inline steps, max 8, 0–500 ms per wait, 3000 ms total, cancel-and-restart per
   control, stopped when remapping is switched off), with a presets menu and
   step progress in the tester.
+- Actions gained its own creation flow (`821e0df`): **New Chord** and **New
+  Sequence** in the section header open a control picker (`ControlPickerSheet`),
+  then the action editor with that kind preselected, so a chord or sequence can
+  be built without first finding the control that will run it.
 - Profiles shipped: per-app overrides by bundle identifier for buttons and
   mouse-sent keys, enabled-only, own bundle excluded, an unbound override falls
   back to the global map, the Default row is always visible, and adding an app
@@ -63,7 +70,7 @@ now, beyond the menu bar remapper it started as:
 
 | Area | Shipped |
 | --- | --- |
-| Window | `NavigationSplitView` with the eight sidebar sections, 1080×660 minimum. The window is the only one; the tester and diagnostics are panes of Advanced. |
+| Window | Fixed 210 pt sidebar beside the detail pane, eight sidebar sections, 1080×660 minimum (`8e15ba1` replaced the `NavigationSplitView` that could lose the sidebar on tall sections). The window is the only one; the tester and diagnostics are panes of Advanced. |
 | Dock | `.accessory` at launch; `.regular` while a window is open; back to `.accessory` when the last one closes; *Keep in Dock* overrides. |
 | Chords | A click with ⌃⌥⇧⌘ held for real around it. |
 | Sequences | Inline steps, every kind except another sequence, 8-step / 500 ms per wait / 3000 ms total caps, async with cancel-and-restart per control, cancelled when remapping goes off. Presets menu and tester step progress. |
@@ -111,8 +118,10 @@ These cannot be proved by an offscreen test and are part of that hardware pass:
   capture the real Dock or ⌘-Tab entry, and this machine grants no screen
   recording.
 
-Push state: nothing is pushed. `track/qa-docs` and the feature branches are
-local until the maintainer pushes them.
+Push state: everything is pushed. `main` is at `3e23f09` and matches
+`origin/main` (`git rev-list --left-right --count origin/main...main` → `0 0`);
+`origin` is `github.com/ericyng/citlla-e510`. The six `track/*` branches are
+still local and were never pushed.
 
 ## Signing
 
@@ -164,7 +173,7 @@ keychain; it never touches TCC.
 | Buttons → Buttons | Toggle, a **Mouse Keystrokes** section (`⌃←` / `⌃→` / `⌃⌘F`, all editable), and the three mouse buttons the hardware reports. |
 | Test Buttons… | Listen-only tap at head insert: highlights and counts each diagram control as it is pressed, shows a raw log, and *Copy Report*. Mouse-sent keystrokes are labelled **Mouse key** and marked bindable; keyboard events are labelled separately. It is the Button Tester pane of Advanced, not a separate window. |
 | Diagnostics | Raw HID reports from the receiver (needs Input Monitoring), the other Advanced pane. |
-| Main window | One `NavigationSplitView`, sections Overview, Buttons, Actions, Profiles, Scrolling, Advanced, Permissions, About. `.regular` while open, `.accessory` again when it closes; *Keep in Dock* in Overview. |
+| Main window | One window: fixed 210 pt sidebar beside the detail pane (`8e15ba1`), sections Overview, Buttons, Actions, Profiles, Scrolling, Advanced, Permissions, About. `.regular` while open, `.accessory` again when it closes; *Keep in Dock* in Overview. |
 | `--status` | Prints accessibility / input monitoring / tap state and exits. |
 | `--snapshot` | Renders the main window (`--window main --section <id>`) or the tester pane to PNG — the only way to check layout on this machine, which does not grant screen recording. |
 
@@ -348,3 +357,18 @@ Signed" certificate was deleted from the login keychain.
   `check.sh` verifies its section list against `MainSection.available` and
   takes `--docs`; the dead `SettingsView` struct removed. Gate run: 137 tests,
   13 snapshots.
+- 2026-11-10: fixed sidebar (`8e15ba1`) — `NavigationSplitView` replaced by an
+  `HStack` with a fixed 210 pt sidebar, after Liquid Glass let tall sections
+  push the sidebar offscreen on macOS 26.
+- 2026-11-11: Actions creation flow (`821e0df`) — **New Chord** / **New
+  Sequence** buttons, a control picker (`ControlPickerSheet`), then the editor
+  with the kind preselected.
+- 2026-11-11/12: project agent `mouse` scaffolded under `agents/mouse/`, with
+  `agents/PROTOCOL.md`, a charter, journal, inbox and seeded knowledge; T2 docs
+  commits pushed to `origin/main` (`b040d9a` … `3e23f09`).
+- 2026-11-12: T2 acceptance run. `Scripts/check.sh --no-snapshots` green: 137
+  tests, Release build, `Citlla E510 Local Signing`, renders skipped. The README
+  Screenshots section now accounts for all nine files in `docs/snapshots/`
+  (`tester.png` is byte-identical to `main-advanced.png`); the renders
+  themselves predate `8e15ba1` and `821e0df`, so a `check.sh --docs` refresh is
+  proposed in `agents/mouse/inbox.md`.
