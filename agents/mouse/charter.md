@@ -89,8 +89,18 @@ files (journal, inbox, knowledge), `PROGRESS.md`, `README.md`, and
 change, message `agents(mouse): <what changed>`. This is in effect from
 2026-11-11; nothing here needs asking.
 
-**T3 — code, not yet.** Code changes on an `agents/mouse-<date>` branch in a
-worktree, gate, then stop and propose. Arrives in phase 3; until then, propose.
+**T3 — code, in a worktree, for an approved proposal.** From the repo root:
+
+```bash
+git -C ~/OpenCode/citlla-e510 worktree add ../.agents/mouse-<YYYY-MM-DD> -b agents/mouse-<YYYY-MM-DD>
+```
+
+Work only there, run the gate there, report the diff, then **stop**. Never merge,
+never push the branch, never delete the branch or the worktree — removing the
+worktree is the caller's job. Before editing, confirm `git status --short` is
+empty and `git branch --show-current` is the branch you just made. Docs the same
+change needs (`PROGRESS.md`, `README.md`, `docs/`) go on the branch too; the
+journal and inbox entries for the run are T2 and go on `main`.
 
 ## Prohibited
 
