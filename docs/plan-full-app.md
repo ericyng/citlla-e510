@@ -76,12 +76,14 @@ Be honest in the UI; do not ship dead controls.
   scroll direction, tilt remapping (`AC Pan` arrives as horizontal scroll),
   login item, launch app/URL/shell.
 - **Cannot (without private APIs):** DPI and polling rate (firmware), gestures
-  (no touch surface), battery percentage (receiver does not report it in any
-  interface seen so far).
+  (no touch surface), battery percentage over 2.4 GHz (the receiver exposes no
+  battery usage page and never sends its `0xB5` report while idle). Over
+  Bluetooth the level comes from macOS and shipped on 2026-11-13.
 - **Unknown, needs a spike:** pointer speed / acceleration. No public API; the
   honest fallback is a deep link to System Settings → Mouse. Do not promise it.
-- **Research spike (optional, 0.5 day):** dump every HID element from the
-  receiver and check for battery / DPI usage pages before ruling them out.
+- **Research spike (done, 2026-11-13):** every HID element from the receiver was
+  dumped and no battery / DPI usage page exists. Diagnostics now reassembles the
+  `0xB5` vendor report so a supervised capture can happen later.
 
 ## 3. Action engine
 

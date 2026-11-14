@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		08B87AAB9EC060B8D69407C0 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF2B1796042A24B29F49927 /* SettingsView.swift */; };
 		0BE8873E0CCFF1DD4F4F1762 /* ActiveAppMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C62B69F4D4380F363BFC4762 /* ActiveAppMonitor.swift */; };
+		10024EE1C34350E8259ABBEB /* MouseBattery.swift in Sources */ = {isa = PBXBuildFile; fileRef = E034FAD84716ADB23B6FEB76 /* MouseBattery.swift */; };
 		13DF5D44820DBD2149AB5C04 /* ActionsSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30AE21B3A4910775EC6464F /* ActionsSectionView.swift */; };
 		194049572FB71D47724B5058 /* ShortcutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98BED303DDB87F08A81BAC5B /* ShortcutRecorder.swift */; };
 		2ABA85FDBFA980BD44CEF8BA /* MouseReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E3A08F7FD3B7B58B2D20F0B /* MouseReceiver.swift */; };
@@ -108,6 +109,7 @@
 		CE39E862CCCC9BEDBEA2882F /* MouseKeyTagger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseKeyTagger.swift; sourceTree = "<group>"; };
 		D3CA9B7EBE42806FFCBCBDA6 /* ButtonBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonBinding.swift; sourceTree = "<group>"; };
 		D6A847E741DD8D726B5DC2BA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		E034FAD84716ADB23B6FEB76 /* MouseBattery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseBattery.swift; sourceTree = "<group>"; };
 		E1B07D17E95E1FD9FD172C2F /* ActionPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionPreset.swift; sourceTree = "<group>"; };
 		F04B68752FB22CCD7845180C /* KeyCodeMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCodeMap.swift; sourceTree = "<group>"; };
 		F0CD1FFF605703919EA4A114 /* ControlPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPickerSheet.swift; sourceTree = "<group>"; };
@@ -172,6 +174,7 @@
 				201592ADEAE3A5917F727B66 /* HIDMonitor.swift */,
 				762303EC4CBD6433FA135A6C /* LoginItemManager.swift */,
 				4F10226975A078944357478D /* MacroRunner.swift */,
+				E034FAD84716ADB23B6FEB76 /* MouseBattery.swift */,
 				CE39E862CCCC9BEDBEA2882F /* MouseKeyTagger.swift */,
 				0634C8CBEBB79BA7778AF716 /* PermissionManager.swift */,
 				F0D906D7B9660BE552C400BA /* ScrollController.swift */,
@@ -353,6 +356,7 @@
 				D752A6F0B89567255BA424DD /* MainWindowView.swift in Sources */,
 				D6FF0B8A56BF901E35B421BF /* MenuBarContent.swift in Sources */,
 				B3EDDDEC8BEBFA3AE08523B7 /* MouseAction.swift in Sources */,
+				10024EE1C34350E8259ABBEB /* MouseBattery.swift in Sources */,
 				A2F226A9E7C41F55C828D939 /* MouseKeyTagger.swift in Sources */,
 				C45DAAB448CBA596174E839B /* MouseMap.swift in Sources */,
 				C785CAEA633351C6E510F084 /* MouseMapView.swift in Sources */,

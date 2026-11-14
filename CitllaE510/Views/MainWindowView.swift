@@ -191,6 +191,7 @@ struct OverviewView: View {
     @EnvironmentObject private var config: ConfigStore
     @EnvironmentObject private var eventTap: EventTapService
     @EnvironmentObject private var activeApp: ActiveAppMonitor
+    @EnvironmentObject private var battery: MouseBatteryMonitor
     @EnvironmentObject private var windows: MainWindowState
     @AppStorage(AppPreferences.keepInDock) private var keepInDock = false
 
@@ -265,11 +266,50 @@ struct OverviewView: View {
 
                 Divider()
 
+                batteryRow
+
+                Divider()
+
                 statusRow(title: "Mouse HID listener", detail: hidListenerStatus, ok: hidListenerIsRunning)
             }
             .padding(4)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    /// Battery state, with one line explaining what the connection can report.
+    /// A receiver connection has no level to show, and this says so plainly
+    /// rather than looking broken.
+    private var batteryRow: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Image(systemName: battery.reading.symbolName)
+                    .foregroundStyle(batteryTint)
+                    .frame(width: 16)
+                Text("Battery")
+                Spacer(minLength: 12)
+                Text(battery.reading.valueText)
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(batteryTint)
+                if let updated = battery.reading.updated, battery.reading.isReported {
+                    Text(updated, format: .dateTime.hour().minute())
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            Text(battery.reading.explanation)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.leading, 26)
+        }
+    }
+
+    private var batteryTint: Color {
+        if battery.reading.isCritical { return .red }
+        if battery.reading.isLow { return .orange }
+        if battery.reading.isReported { return .primary }
+        return .secondary
     }
 
     private var remappingCard: some View {

@@ -16,8 +16,9 @@ for one app only.
 ## Screenshots
 
 **Overview** — the app's state at a glance: the event tap, the supported
-receivers, the HID listener, the remapping switch, permission health, how many
-controls are bound and which profile is active, and the Dock preference:
+receivers, the battery state, the HID listener, the remapping switch, permission
+health, how many controls are bound and which profile is active, and the Dock
+preference:
 
 ![Overview](docs/snapshots/main-overview.png)
 
@@ -199,11 +200,33 @@ hold a lot of work and is not a button.
   this app cannot move them. The row is a link to System Settings → Mouse, and
   says so.
 
-There is no DPI control, no polling-rate control and no battery reading: the
-receiver exposes none of them through a public interface. The mouse has no touch
+There is no DPI control and no polling-rate control: both are firmware features
+with no public interface. Battery life is only available over Bluetooth (see
+**Battery**); the 2.4 GHz receiver does not report it. The mouse has no touch
 surface, so there are no gestures, and no gesture editor pretends otherwise.
 Scroll changes need the same Accessibility access as the buttons, and the master
 switch on the Buttons page turns all remapping off, including scrolling.
+
+## Battery
+
+**Battery** is a row in the Overview's Device card, and the percentage joins the
+menu bar icon whenever there is one to show.
+
+- Over **Bluetooth**, macOS publishes the mouse's level, so the app reads it from
+  the system's HID event service and refreshes it once a minute. No permission is
+  involved: it reads the IORegistry, opens nothing and sends nothing to the
+  mouse.
+- Over the **2.4 GHz receiver** there is no level to read. None of the receiver's
+  HID interfaces carries a battery usage page, and the `0xB5` vendor report has
+  never been seen while the mouse is idle. The row says **Not reported** and
+  explains why, instead of drawing an empty battery.
+- At **20%** and below the percentage turns orange; at **10%** and below, red.
+  There is no system notification, which would add a notification prompt for a
+  number the menu bar already shows.
+
+The **Advanced → Diagnostics** pane now reassembles the receiver's `0xB5` vendor
+reports into whole seven-byte payloads with a **Copy** button, so a future 2.4 GHz
+protocol study can start from a real capture instead of guesswork.
 
 ## Button tester
 
@@ -463,8 +486,9 @@ maps and deliberately leaves scrolling and profiles alone.
   horizontal event. A very slow or continuously held side wheel is therefore
   one action, not a stream of them.
 - DPI, polling-rate, and Bluetooth/2.4G mode switches are firmware features and
-  are not software-remappable. The receiver does not report battery level, and
-  the mouse has no touch surface, so there are no gestures.
+  are not software-remappable. Battery level is only available over Bluetooth;
+  the 2.4 GHz receiver does not report it. The mouse has no touch surface, so
+  there are no gestures.
 - Typed-text steps, nested sequences and a named macro library are not in this
   release (see **Chained actions**).
 - The app is not sandboxed. Event taps and HID access are not compatible with
@@ -500,6 +524,11 @@ If the receiver's IDs are missing from that list, add a
 `MouseReceiver(vendorID: 0x…, productID: 0x…, name: "…")` entry and rebuild.
 `ioreg` prints the IDs in decimal, so convert them to hex first.
 
+**Battery says *Not reported*.**
+The mouse is on its 2.4 GHz receiver, which carries no battery level on any
+interface. Switch it to Bluetooth and the row fills in on the next read, within a
+minute; the menu bar icon shows the percentage only when there is one.
+
 **The app does not appear in Accessibility.**
 Drag `CitllaE510.app` from Finder into the Accessibility list, or use the `+`
 button and select it from DerivedData.
@@ -532,8 +561,9 @@ CitllaE510.app/Contents/MacOS/CitllaE510 --status
 ```
 
 It prints (and writes to `~/Library/Application Support/CitllaE510/status.txt`)
-whether Accessibility is trusted, whether Input Monitoring is granted, and
-whether a session event tap can be created.
+whether Accessibility is trusted, whether Input Monitoring is granted, whether a
+session event tap can be created, and what the battery row resolves to (so
+`Not reported over 2.4 GHz` can be confirmed from a terminal).
 
 ## Development
 

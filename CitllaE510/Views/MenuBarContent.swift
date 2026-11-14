@@ -5,6 +5,7 @@ struct MenuBarContent: View {
     @EnvironmentObject private var config: ConfigStore
     @EnvironmentObject private var eventTap: EventTapService
     @EnvironmentObject private var loginItem: LoginItemManager
+    @EnvironmentObject private var battery: MouseBatteryMonitor
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -28,6 +29,10 @@ struct MenuBarContent: View {
         } else {
             Text(eventTap.isRunning ? "Event tap active" : "Event tap inactive")
         }
+
+        // Read-only status. The menu bar label already carries the percentage
+        // when there is one; this line explains the case where there is not.
+        Label(battery.reading.summaryText, systemImage: battery.reading.symbolName)
 
         Divider()
 

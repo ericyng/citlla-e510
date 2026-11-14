@@ -16,7 +16,8 @@ enum StatusProbe {
             "bundlePath: \(Bundle.main.bundlePath)",
             "accessibilityTrusted: \(AXIsProcessTrusted())",
             "inputMonitoring: \(PermissionManager.inputMonitoringStatusText)",
-            "eventTapCreatable: \(canCreateEventTap())"
+            "eventTapCreatable: \(canCreateEventTap())",
+            "battery: \(MouseBattery.reading(from: MouseBattery.connectedDevices()).summaryText)"
         ].joined(separator: "\n")
 
         print(report)
