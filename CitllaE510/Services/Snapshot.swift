@@ -42,6 +42,11 @@ enum Snapshot {
             // a white background.
             NSApp.appearance = NSAppearance(named: .aqua)
 
+            // The battery monitor normally starts in the app delegate, which a
+            // snapshot launch skips. Read once so the Device card shows the
+            // real state instead of "Not read yet".
+            AppModel.shared.battery.refresh()
+
             let state = MainWindowState()
             switch windowName {
             case "tester":
@@ -58,6 +63,7 @@ enum Snapshot {
                 .environmentObject(AppModel.shared.eventTap)
                 .environmentObject(AppModel.shared.loginItem)
                 .environmentObject(AppModel.shared.activeApp)
+                .environmentObject(AppModel.shared.battery)
                 .environmentObject(state)
 
             let window = NSWindow(contentViewController: NSHostingController(rootView: root))

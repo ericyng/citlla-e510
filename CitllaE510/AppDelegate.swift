@@ -24,6 +24,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // every activation from here on.
         model.activeApp.start()
 
+        // Read the mouse's battery now and once a minute after this. No
+        // permission is involved: it reads the IORegistry, not the device.
+        model.battery.start()
+
         // With *Keep in Dock* on, the app is a normal Dock app from launch even
         // before a window exists. Otherwise this is a no-op: the app stays
         // `.accessory` and only the menu bar icon is visible.

@@ -16,6 +16,9 @@ final class AppModel {
     /// started by `AppDelegate`; before that it holds the app that was in front
     /// when the process launched.
     let activeApp: ActiveAppMonitor
+    /// The mouse's battery level, read from the IORegistry. One instance so the
+    /// menu bar and the Overview show the same reading.
+    let battery: MouseBatteryMonitor
 
     private init() {
         let store = ConfigStore()
@@ -24,6 +27,7 @@ final class AppModel {
         config = store
         self.tagger = tagger
         self.activeApp = activeApp
+        battery = MouseBatteryMonitor()
         eventTap = EventTapService(config: store, tagger: tagger, activeApp: activeApp)
         loginItem = LoginItemManager.shared
         WindowManager.shared.configure(
@@ -43,6 +47,7 @@ struct CitllaE510App: App {
     @ObservedObject private var eventTap = AppModel.shared.eventTap
     @ObservedObject private var loginItem = AppModel.shared.loginItem
     @ObservedObject private var activeApp = AppModel.shared.activeApp
+    @ObservedObject private var battery = AppModel.shared.battery
 
     init() {
         StatusProbe.runIfRequested()
@@ -56,6 +61,7 @@ struct CitllaE510App: App {
                 .environmentObject(eventTap)
                 .environmentObject(loginItem)
                 .environmentObject(activeApp)
+                .environmentObject(battery)
         } label: {
             MenuBarLabel()
         }
@@ -66,6 +72,7 @@ struct CitllaE510App: App {
                 .environmentObject(eventTap)
                 .environmentObject(loginItem)
                 .environmentObject(activeApp)
+                .environmentObject(battery)
                 .environmentObject(WindowManager.shared.state)
         }
         .defaultSize(width: 1080, height: 720)
@@ -92,14 +99,26 @@ struct CitllaE510App: App {
 
 /// The menu bar icon. It also captures SwiftUI's `openWindow` action so the
 /// AppDelegate and the menu bar menu can open the main window programmatically.
+///
+/// When Bluetooth reports a level the icon carries it as text, so the battery
+/// is visible without opening the menu. The mouse icon stays first so the item
+/// is still recognisable; a connection that reports nothing (the 2.4 GHz
+/// receiver) shows the icon alone.
 private struct MenuBarLabel: View {
     @Environment(\.openWindow) private var openWindow
+    @ObservedObject private var battery = AppModel.shared.battery
 
     var body: some View {
-        Image(systemName: "computermouse")
-            .accessibilityLabel("Citlla E510")
-            .onAppear {
-                WindowManager.shared.register(openWindow: openWindow)
+        HStack(spacing: 3) {
+            Image(systemName: "computermouse")
+            if let percent = battery.reading.percent {
+                Text("\(percent)%")
+                    .monospacedDigit()
             }
+        }
+        .accessibilityLabel(battery.reading.accessibilityText)
+        .onAppear {
+            WindowManager.shared.register(openWindow: openWindow)
+        }
     }
 }

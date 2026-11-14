@@ -1,6 +1,6 @@
 # Progress
 
-Last updated: 2026-11-12
+Last updated: 2026-11-13
 
 Where the Citlla E510 app stands, what was learned about the mouse, and what is
 next. `README.md` is the user-facing documentation; this file is the working
@@ -10,10 +10,10 @@ log.
 
 - Debug and Release builds are healthy; `Scripts/build.sh` runs tests, builds,
   verifies the bundle, installs and launches.
-- 137 unit tests pass (config round-trip, action model, chords, sequences and
+- 158 unit tests pass (config round-trip, action model, chords, sequences and
   the runner, presets, scroll controller, profile precedence, button naming, key
-  codes, shortcut bindings, media-key decoding, receiver matching, and the
-  diagram's nine callouts).
+  codes, shortcut bindings, media-key decoding, receiver matching, the diagram's
+  nine callouts, the battery resolver and the vendor-report assembler).
 - Menu bar app (`LSUIElement`) that starts in `.accessory` and grows a real main
   window when opened: a fixed 210 pt sidebar beside the detail pane. `8e15ba1`
   replaced the `NavigationSplitView`, whose Liquid Glass sidebar could let a tall
@@ -52,8 +52,15 @@ log.
   uses `NSOpenPanel`. Profiles survive *Reset to defaults*.
 - Scrolling shipped: invert vertical/horizontal in place (phase and momentum
   preserved), tilt left/right fire once per flick behind a 250 ms quiet window,
-  pointer speed is a link to System Settings only. No DPI, polling rate,
-  battery or gestures.
+  pointer speed is a link to System Settings only. No DPI or polling rate, and
+  no gestures.
+- Battery shipped over Bluetooth: `MouseBattery` resolves the level macOS
+  publishes on the mouse's `AppleUserHIDEventService` node, and
+  `MouseBatteryMonitor` re-reads the IORegistry once a minute. The Overview's
+  Device card and the menu bar icon show the percentage; 20% turns it orange and
+  10% red. A 2.4 GHz connection has no level to show, so the row says *Not
+  reported* and explains why. Diagnostics reassembles `0xB5` vendor reports into
+  seven-byte payloads with a Copy button for a later supervised capture.
 - Signing: the local certificate's designated requirement is stable, so the one
   `tccutil reset` plus re-grant from the switch to it is the only reset rebuilds
   have needed. The gate run on 2026-11-09 signed with
@@ -372,3 +379,14 @@ Signed" certificate was deleted from the login keychain.
   (`tester.png` is byte-identical to `main-advanced.png`); the renders
   themselves predate `8e15ba1` and `821e0df`, so a `check.sh --docs` refresh is
   proposed in `agents/mouse/inbox.md`.
+- 2026-11-13: battery life. Hardware probe first: the receiver's HID descriptors
+  carry no Battery Strength (`0x06:0x20`) or Battery System (`0x85`) collection
+  on any interface, macOS publishes `BatteryPercent` only for the Bluetooth
+  node, a three-minute passive capture saw no `0xFFB5` report while idle, and
+  `GetReport` on the receiver returns `0xE0005000`. So the level comes from the
+  IORegistry's `AppleUserHIDEventService` node over Bluetooth, and the receiver
+  case is an honest *Not reported*. Added `MouseBattery` (pure resolver plus
+  IORegistry reader), `MouseBatteryMonitor` (60 s poll), a Device-card row, a
+  menu bar percentage, `VendorReportAssembler` plus a Copy list in Diagnostics,
+  and 21 tests. Gate: `Scripts/check.sh --no-snapshots` green, 158 tests; the
+  Overview render at 2x shows the new row and still fits the Dock card.

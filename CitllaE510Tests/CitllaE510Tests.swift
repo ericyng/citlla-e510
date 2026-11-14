@@ -1901,3 +1901,244 @@ final class ActiveAppMonitorTests: XCTestCase {
     }
 }
 
+
+final class MouseBatteryTests: XCTestCase {
+    private func device(
+        _ name: String = "BT Mouse",
+        transport: String = "Bluetooth Low Energy",
+        percent: Int?,
+        vendorID: Int = 0x32C2,
+        productID: Int = 0x12
+    ) -> HIDBatteryDevice {
+        HIDBatteryDevice(
+            name: name,
+            vendorID: vendorID,
+            productID: productID,
+            transport: transport,
+            batteryPercent: percent
+        )
+    }
+
+    private func receiver(percent: Int? = nil) -> HIDBatteryDevice {
+        device("2.4G Mouse", transport: "USB", percent: percent, vendorID: 0x1EA7, productID: 0x66)
+    }
+
+    func testBluetoothLevelIsReported() {
+        let reading = MouseBattery.reading(from: [device(percent: 82)])
+
+        XCTAssertEqual(reading.kind, .reported(82))
+        XCTAssertEqual(reading.percent, 82)
+        XCTAssertEqual(reading.source, .bluetooth)
+        XCTAssertEqual(reading.deviceName, "BT Mouse")
+        XCTAssertTrue(reading.isConnected)
+        XCTAssertFalse(reading.isLow)
+        XCTAssertEqual(reading.valueText, "82%")
+    }
+
+    func testReceiverWithNoLevelIsNotReported() {
+        let reading = MouseBattery.reading(from: [receiver()])
+
+        XCTAssertEqual(reading.kind, .notReported)
+        XCTAssertEqual(reading.source, .receiver)
+        XCTAssertNil(reading.percent)
+        XCTAssertTrue(reading.isConnected)
+        XCTAssertEqual(reading.valueText, "Not reported")
+    }
+
+    func testBluetoothWithoutALevelIsNotReported() {
+        let reading = MouseBattery.reading(from: [device(percent: nil)])
+
+        XCTAssertEqual(reading.kind, .notReported)
+        XCTAssertEqual(reading.source, .bluetooth)
+    }
+
+    func testNoDevicesMeansUnreachable() {
+        let reading = MouseBattery.reading(from: [])
+
+        XCTAssertEqual(reading.kind, .unreachable)
+        XCTAssertFalse(reading.isConnected)
+        XCTAssertNil(reading.source)
+        XCTAssertEqual(reading.valueText, "Not connected")
+    }
+
+    func testAReportedLevelWinsOverSilentNodes() {
+        let reading = MouseBattery.reading(from: [
+            receiver(),
+            device(percent: 64)
+        ])
+
+        XCTAssertEqual(reading.kind, .reported(64))
+        XCTAssertEqual(reading.source, .bluetooth)
+    }
+
+    func testAReportedReceiverLevelWinsToo() {
+        // Not seen on the E510, but a future receiver revision could report one.
+        let reading = MouseBattery.reading(from: [
+            device(percent: nil),
+            receiver(percent: 55)
+        ])
+
+        XCTAssertEqual(reading.kind, .reported(55))
+        XCTAssertEqual(reading.source, .receiver)
+    }
+
+    func testTheReceiverWinsWhenNeitherConnectionReports() {
+        // macOS keeps a remembered Bluetooth node registered while the mouse is
+        // on 2.4 GHz; a plugged-in receiver is the stronger signal.
+        let reading = MouseBattery.reading(from: [
+            device("BT Mouse", percent: nil),
+            receiver()
+        ])
+
+        XCTAssertEqual(reading.kind, .notReported)
+        XCTAssertEqual(reading.source, .receiver)
+    }
+
+    func testUnrelatedDevicesAreIgnored() {
+        let logitech = device(
+            "MX MCHNCL M",
+            transport: "Bluetooth Low Energy",
+            percent: 90,
+            vendorID: 0x046D,
+            productID: 0xB037
+        )
+
+        XCTAssertEqual(MouseBattery.reading(from: [logitech]).kind, .unreachable)
+    }
+
+    func testPercentIsClamped() {
+        XCTAssertEqual(MouseBattery.reading(from: [device(percent: 140)]).percent, 100)
+        XCTAssertEqual(MouseBattery.reading(from: [device(percent: -5)]).percent, 0)
+    }
+
+    func testLowAndCriticalThresholds() {
+        XCTAssertFalse(MouseBattery.reading(from: [device(percent: 21)]).isLow)
+        XCTAssertTrue(MouseBattery.reading(from: [device(percent: 20)]).isLow)
+        XCTAssertFalse(MouseBattery.reading(from: [device(percent: 20)]).isCritical)
+        XCTAssertTrue(MouseBattery.reading(from: [device(percent: 10)]).isCritical)
+    }
+
+    func testSymbolsNeverLookLikeAnEmptyBatteryUnlessItIsEmpty() {
+        XCTAssertEqual(MouseBattery.reading(from: [device(percent: 100)]).symbolName, "battery.100percent")
+        XCTAssertEqual(MouseBattery.reading(from: [device(percent: 75)]).symbolName, "battery.75percent")
+        XCTAssertEqual(MouseBattery.reading(from: [device(percent: 50)]).symbolName, "battery.50percent")
+        XCTAssertEqual(MouseBattery.reading(from: [device(percent: 25)]).symbolName, "battery.25percent")
+        XCTAssertEqual(MouseBattery.reading(from: [device(percent: 10)]).symbolName, "battery.0percent")
+        XCTAssertEqual(MouseBattery.reading(from: [device(percent: nil)]).symbolName, "bolt.horizontal.circle")
+        XCTAssertEqual(MouseBattery.reading(from: []).symbolName, "computermouse")
+        XCTAssertEqual(MouseBatteryReading.notYetRead.symbolName, "ellipsis.circle")
+    }
+
+    func testTheExplanationSaysWhyTheReceiverCannotShowALevel() {
+        let reading = MouseBattery.reading(from: [receiver()])
+
+        XCTAssertTrue(reading.explanation.contains("does not send a battery level"))
+        XCTAssertTrue(reading.explanation.contains("Bluetooth"))
+    }
+
+    func testMenuBarSummaryNamesTheSource() {
+        XCTAssertEqual(
+            MouseBattery.reading(from: [device(percent: 82)]).summaryText,
+            "Battery · 82% (Bluetooth)"
+        )
+        XCTAssertEqual(
+            MouseBattery.reading(from: [receiver()]).summaryText,
+            "Battery · not reported over 2.4 GHz"
+        )
+        XCTAssertEqual(
+            MouseBattery.reading(from: []).summaryText,
+            "Battery · mouse not connected"
+        )
+    }
+
+    func testNotYetReadIsNeitherConnectedNorReported() {
+        let reading = MouseBatteryReading.notYetRead
+
+        XCTAssertEqual(reading.kind, .unknown)
+        XCTAssertNil(reading.percent)
+        XCTAssertFalse(reading.isConnected)
+        XCTAssertEqual(reading.explanation, "The level is read from macOS when the app starts.")
+    }
+}
+
+@MainActor
+final class MouseBatteryMonitorTests: XCTestCase {
+    func testStartReadsOnceAndIsIdempotent() {
+        let monitor = MouseBatteryMonitor()
+
+        monitor.start()
+        monitor.start()
+
+        // Whatever this machine is connected to, the monitor must have looked.
+        // `updated` is set on every read, including the not-connected answer.
+        XCTAssertNotNil(monitor.reading.updated)
+        XCTAssertNotEqual(monitor.reading.kind, .unknown)
+
+        monitor.stop()
+        monitor.stop()
+    }
+
+    func testRefreshUpdatesTheReading() {
+        let monitor = MouseBatteryMonitor()
+
+        monitor.refresh()
+
+        XCTAssertNotNil(monitor.reading.updated)
+    }
+}
+
+final class VendorReportAssemblerTests: XCTestCase {
+    func testSevenValuesMakeOneReport() {
+        var assembler = VendorReportAssembler()
+
+        for value in 1...6 {
+            XCTAssertNil(assembler.append(value), "a partial report must not be published")
+        }
+
+        XCTAssertEqual(assembler.append(7), [1, 2, 3, 4, 5, 6, 7])
+        XCTAssertEqual(assembler.bytes, [])
+    }
+
+    func testValuesAreMaskedToOneByte() {
+        var assembler = VendorReportAssembler()
+        var report: [UInt8]?
+
+        for value in 0x101...0x107 {
+            report = assembler.append(value)
+        }
+
+        XCTAssertEqual(report, [1, 2, 3, 4, 5, 6, 7])
+        XCTAssertEqual(assembler.bytes, [])
+    }
+
+    func testAnEighthValueStartsTheNextReport() {
+        var assembler = VendorReportAssembler()
+        var reports: [[UInt8]] = []
+
+        for value in 1...8 {
+            if let payload = assembler.append(value) {
+                reports.append(payload)
+            }
+        }
+
+        XCTAssertEqual(reports, [[1, 2, 3, 4, 5, 6, 7]])
+        XCTAssertEqual(assembler.bytes, [8])
+    }
+
+    func testResetDropsAPartialReport() {
+        var assembler = VendorReportAssembler()
+
+        _ = assembler.append(1)
+        _ = assembler.append(2)
+        assembler.reset()
+
+        XCTAssertEqual(assembler.bytes, [])
+        XCTAssertNil(assembler.append(3))
+    }
+
+    func testTheHexDumpStartsWithTheReportID() {
+        let entry = VendorReportEntry(device: "2.4G Mouse", payload: [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07])
+
+        XCTAssertEqual(entry.reportHex, "B5 01 02 03 04 05 06 07")
+    }
+}

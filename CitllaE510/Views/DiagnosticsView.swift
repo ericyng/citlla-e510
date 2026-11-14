@@ -75,6 +75,11 @@ struct DiagnosticsView: View {
 
             Divider()
 
+            if !monitor.vendorReports.isEmpty {
+                vendorReportList
+                Divider()
+            }
+
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 3) {
@@ -157,5 +162,47 @@ struct DiagnosticsView: View {
         case 0xFFB5: .orange
         default: .primary
         }
+    }
+
+    /// Whole `0xB5` vendor reports, if the mouse has sent any. Normally empty:
+    /// the list is there so a capture can be copied out when one appears.
+    private var vendorReportList: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Text("Vendor reports · 0xB5")
+                    .font(.caption.weight(.semibold))
+                Text("\(monitor.vendorReports.count)")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("Copy") { copyVendorReports() }
+                    .controlSize(.small)
+            }
+            ForEach(monitor.vendorReports.suffix(4).reversed()) { report in
+                HStack(spacing: 8) {
+                    Text(report.date, format: .dateTime.hour().minute().second())
+                        .foregroundStyle(.tertiary)
+                    Text(report.device)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Text(report.reportHex)
+                        .foregroundStyle(Color.orange)
+                }
+                .font(.system(.caption, design: .monospaced))
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 10)
+    }
+
+    private func copyVendorReports() {
+        let text = monitor.vendorReports
+            .map { report in
+                "\(report.date.formatted(date: .omitted, time: .standard))  \(report.device)  \(report.reportHex)"
+            }
+            .joined(separator: "\n")
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
     }
 }

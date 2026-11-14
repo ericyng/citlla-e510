@@ -19,6 +19,55 @@ struct HIDDeviceInfo: Identifiable, Hashable, Sendable {
     }
 }
 
+/// One complete vendor report from the mouse, reassembled from its individual
+/// HID values.
+///
+/// The receiver's vendor collection is report ID `0xB5`: seven input bytes and
+/// seven output bytes, delivered one usage value at a time. The E510 has never
+/// been seen to emit one while idle, so this list exists to catch a report when
+/// it happens and make a future 2.4 GHz protocol spike possible. It is read-only
+/// diagnostics: nothing here is ever sent to the device.
+struct VendorReportEntry: Identifiable, Hashable, Sendable {
+    let id = UUID()
+    let date = Date()
+    let device: String
+    /// The seven input bytes, in arrival order.
+    let payload: [UInt8]
+
+    /// The full report, report ID first, as a copyable hex dump.
+    var reportHex: String {
+        ([UInt8(0xB5)] + payload)
+            .map { String(format: "%02X", $0) }
+            .joined(separator: " ")
+    }
+}
+
+/// Rebuilds seven-byte vendor reports from the HID value stream.
+///
+/// Values arrive one at a time and are kept in arrival order rather than keyed
+/// by usage: the vendor collection does not promise usage numbers for its
+/// bytes, and arrival order is what a protocol capture needs. A partial report
+/// from a dropped value cannot stall the stream, because the buffer is trimmed
+/// to whole reports after every flush.
+struct VendorReportAssembler {
+    static let reportLength = 7
+
+    private(set) var bytes: [Int] = []
+
+    /// Adds one value. Returns a complete report when one is ready.
+    mutating func append(_ value: Int) -> [UInt8]? {
+        bytes.append(value & 0xFF)
+        guard bytes.count >= Self.reportLength else { return nil }
+        let payload = bytes.prefix(Self.reportLength).map { UInt8($0 & 0xFF) }
+        bytes.removeFirst(Self.reportLength)
+        return Array(payload)
+    }
+
+    mutating func reset() {
+        bytes.removeAll()
+    }
+}
+
 struct HIDEventEntry: Identifiable, Hashable, Sendable {
     let id = UUID()
     let date = Date()
@@ -52,12 +101,17 @@ final class HIDMonitor: ObservableObject {
     @Published private(set) var isRunning = false
     @Published private(set) var devices: [HIDDeviceInfo] = []
     @Published private(set) var events: [HIDEventEntry] = []
+    /// Complete `0xB5` vendor reports, newest last. Empty on most runs: the
+    /// mouse only sends one on a firmware event.
+    @Published private(set) var vendorReports: [VendorReportEntry] = []
     @Published private(set) var errorMessage: String?
 
     private var manager: IOHIDManager?
+    private var vendorAssembler = VendorReportAssembler()
     private let logger = Logger(subsystem: "com.ericng.citillae510", category: "hid")
 
     private static let maximumEvents = 250
+    private static let maximumVendorReports = 50
 
     func start() {
         guard manager == nil else { return }
@@ -98,10 +152,13 @@ final class HIDMonitor: ObservableObject {
         self.manager = nil
         isRunning = false
         devices.removeAll()
+        vendorAssembler.reset()
     }
 
     func clearEvents() {
         events.removeAll()
+        vendorReports.removeAll()
+        vendorAssembler.reset()
     }
 
     fileprivate func upsertDevice(_ info: HIDDeviceInfo) {
@@ -123,6 +180,16 @@ final class HIDMonitor: ObservableObject {
         ))
         if events.count > Self.maximumEvents {
             events.removeFirst(events.count - Self.maximumEvents)
+        }
+
+        // The vendor collection is report ID 0xB5, seven bytes. Assemble it so a
+        // future protocol spike has whole reports to read instead of single
+        // usage values.
+        if usagePage == 0xFFB5, let payload = vendorAssembler.append(value) {
+            vendorReports.append(VendorReportEntry(device: device, payload: payload))
+            if vendorReports.count > Self.maximumVendorReports {
+                vendorReports.removeFirst(vendorReports.count - Self.maximumVendorReports)
+            }
         }
     }
 }
