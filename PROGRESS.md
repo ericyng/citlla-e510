@@ -388,5 +388,8 @@ Signed" certificate was deleted from the login keychain.
   case is an honest *Not reported*. Added `MouseBattery` (pure resolver plus
   IORegistry reader), `MouseBatteryMonitor` (60 s poll), a Device-card row, a
   menu bar percentage, `VendorReportAssembler` plus a Copy list in Diagnostics,
-  and 21 tests. Gate: `Scripts/check.sh --no-snapshots` green, 158 tests; the
-  Overview render at 2x shows the new row and still fits the Dock card.
+  and 21 tests. `--status` now ends with the resolved battery line, which is how
+  *Not reported over 2.4 GHz* was confirmed on this machine. Gate:
+  `Scripts/check.sh --no-snapshots` green, 158 tests; the Overview render at 2x
+  shows the new row and still fits the Dock card. `docs/snapshots/main-overview.png`
+  is stale until the next `check.sh --docs`.
