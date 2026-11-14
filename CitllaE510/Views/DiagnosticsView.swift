@@ -182,11 +182,14 @@ struct DiagnosticsView: View {
                 HStack(spacing: 8) {
                     Text(report.date, format: .dateTime.hour().minute().second())
                         .foregroundStyle(.tertiary)
+                        .textSelection(.enabled)
                     Text(report.device)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
+                        .textSelection(.enabled)
                     Text(report.reportHex)
                         .foregroundStyle(Color.orange)
+                        .textSelection(.enabled)
                 }
                 .font(.system(.caption, design: .monospaced))
             }
