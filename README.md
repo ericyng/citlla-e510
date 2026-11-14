@@ -561,8 +561,9 @@ CitllaE510.app/Contents/MacOS/CitllaE510 --status
 ```
 
 It prints (and writes to `~/Library/Application Support/CitllaE510/status.txt`)
-whether Accessibility is trusted, whether Input Monitoring is granted, and
-whether a session event tap can be created.
+whether Accessibility is trusted, whether Input Monitoring is granted, whether a
+session event tap can be created, and what the battery row resolves to (so
+`Not reported over 2.4 GHz` can be confirmed from a terminal).
 
 ## Development
 
