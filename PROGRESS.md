@@ -54,13 +54,14 @@ log.
   preserved), tilt left/right fire once per flick behind a 250 ms quiet window,
   pointer speed is a link to System Settings only. No DPI or polling rate, and
   no gestures.
-- Battery shipped over Bluetooth: `MouseBattery` resolves the level macOS
-  publishes on the mouse's `AppleUserHIDEventService` node, and
-  `MouseBatteryMonitor` re-reads the IORegistry once a minute. The Overview's
-  Device card and the menu bar icon show the percentage; 20% turns it orange and
-  10% red. A 2.4 GHz connection has no level to show, so the row says *Not
-  reported* and explains why. Diagnostics reassembles `0xB5` vendor reports into
-  seven-byte payloads with a Copy button for a later supervised capture.
+- Battery shipped over Bluetooth: `MouseBattery` reads the level from the
+  Bluetooth stack (`system_profiler -json SPBluetoothDataType`) and the
+  IORegistry only for the connection's transport, and `MouseBatteryMonitor`
+  re-reads both once a minute. The Overview's Device card and the menu bar icon
+  show the percentage; 20% turns it orange and 10% red. A 2.4 GHz connection has
+  no level to show, so the row says *Not reported* and explains why. Diagnostics
+  reassembles `0xB5` vendor reports into seven-byte payloads with a Copy button
+  for a later supervised capture.
 - Signing: the local certificate's designated requirement is stable, so the one
   `tccutil reset` plus re-grant from the switch to it is the only reset rebuilds
   have needed. The gate run on 2026-11-09 signed with
@@ -393,3 +394,13 @@ Signed" certificate was deleted from the login keychain.
   `Scripts/check.sh --no-snapshots` green, 158 tests; the Overview render at 2x
   shows the new row and still fits the Dock card. `docs/snapshots/main-overview.png`
   is stale until the next `check.sh --docs`.
+- 2026-11-13 (correction): the level does **not** come from the mouse's
+  `AppleUserHIDEventService` node. On the live machine that node has no
+  `BatteryPercent`; the only such node in the whole registry is the Magic
+  Keyboard's `AppleDeviceManagementHIDEventService`. A third-party mouse reports
+  its level only through the Bluetooth GATT Battery Service, which
+  `IOBluetoothDevice.batteryPercentSingle` leaves at 0 but
+  `system_profiler -json SPBluetoothDataType` prints (`device_batteryLevelMain`).
+  `BluetoothBattery` now parses that JSON and `MouseBattery.mergedDevices`
+  overlays it on the registry's transport; `--status` reads
+  *Battery · 100% (Bluetooth)*. Added 10 tests (168 total).

@@ -212,10 +212,12 @@ switch on the Buttons page turns all remapping off, including scrolling.
 **Battery** is a row in the Overview's Device card, and the percentage joins the
 menu bar icon whenever there is one to show.
 
-- Over **Bluetooth**, macOS publishes the mouse's level, so the app reads it from
-  the system's HID event service and refreshes it once a minute. No permission is
-  involved: it reads the IORegistry, opens nothing and sends nothing to the
-  mouse.
+- Over **Bluetooth**, macOS learns the mouse's level through the Bluetooth
+  stack's GATT Battery Service, and `system_profiler` prints it. The app reads
+  that, plus the IORegistry for which connection is live, once a minute. No
+  permission is involved: it opens nothing and sends nothing to the mouse. (The
+  mouse's IORegistry node itself carries no `BatteryPercent`; only Apple-made
+  accessories get one.)
 - Over the **2.4 GHz receiver** there is no level to read. None of the receiver's
   HID interfaces carries a battery usage page, and the `0xB5` vendor report has
   never been seen while the mouse is idle. The row says **Not reported** and
@@ -572,7 +574,8 @@ CitllaE510/
   Models/       Config, bindings, action model, app profiles, presets,
                 the diagram's callouts
   Services/     Event tap, actions, macro runner, scroll controller, HID
-                monitor, active-app monitor, permissions, windows, tester
+                monitor, active-app monitor, permissions, windows, tester,
+                Bluetooth battery probe
   Views/        Menu bar, main window and sidebar, sections, editors, tester
   Utilities/    Key-code names, event marker, --status probe
   Assets.xcassets/Mouse/  Renders extracted from the manufacturer's diagram

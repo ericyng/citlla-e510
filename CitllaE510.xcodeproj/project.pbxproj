@@ -43,6 +43,7 @@
 		AEBD57E3D4936A24C3A247A1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D6A847E741DD8D726B5DC2BA /* Assets.xcassets */; };
 		B01DC56AEF40D41070487F88 /* ControlPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0CD1FFF605703919EA4A114 /* ControlPickerSheet.swift */; };
 		B156AA6CE3CACA12E72497A2 /* ShortcutBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D208ADFCF90FF812179883B /* ShortcutBinding.swift */; };
+		B28635137D7CAF483C4A1EE5 /* BluetoothBattery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 419147B2BDBF29E059AB04A0 /* BluetoothBattery.swift */; };
 		B3EDDDEC8BEBFA3AE08523B7 /* MouseAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17D90DB6A59BAFC9BE0DB5E2 /* MouseAction.swift */; };
 		BD4FA991A7917918870BD28C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49637FBEBBA9734BAD28AAD9 /* AppDelegate.swift */; };
 		BDC37F94F2A640AB0443AF06 /* ActionExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE6F64D5A5906F3E5AF44204 /* ActionExecutor.swift */; };
@@ -81,6 +82,7 @@
 		2E3A08F7FD3B7B58B2D20F0B /* MouseReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseReceiver.swift; sourceTree = "<group>"; };
 		39271D60154EC6B23B507639 /* ScrollingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingView.swift; sourceTree = "<group>"; };
 		3EC3F329932290601CBDF00F /* ActionEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionEditorSheet.swift; sourceTree = "<group>"; };
+		419147B2BDBF29E059AB04A0 /* BluetoothBattery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothBattery.swift; sourceTree = "<group>"; };
 		49637FBEBBA9734BAD28AAD9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		4F10226975A078944357478D /* MacroRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroRunner.swift; sourceTree = "<group>"; };
 		558CBB6387AB4B290173F220 /* ButtonTester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonTester.swift; sourceTree = "<group>"; };
@@ -168,6 +170,7 @@
 			children = (
 				FE6F64D5A5906F3E5AF44204 /* ActionExecutor.swift */,
 				C62B69F4D4380F363BFC4762 /* ActiveAppMonitor.swift */,
+				419147B2BDBF29E059AB04A0 /* BluetoothBattery.swift */,
 				558CBB6387AB4B290173F220 /* ButtonTester.swift */,
 				81A6CBC2033F0EA390CEFA6C /* DockControl.swift */,
 				24D9C2BC846F00910BC0F2EF /* EventTapService.swift */,
@@ -337,6 +340,7 @@
 				923E842895AA5E0A468FAD2C /* AppConfig.swift in Sources */,
 				BD4FA991A7917918870BD28C /* AppDelegate.swift in Sources */,
 				CF834E45C4FDC6C475F26722 /* AppProfile.swift in Sources */,
+				B28635137D7CAF483C4A1EE5 /* BluetoothBattery.swift in Sources */,
 				34D1FF44C52A8681B04EA92C /* ButtonBinding.swift in Sources */,
 				64944C159F6A1B16D0D5BD24 /* ButtonTester.swift in Sources */,
 				9AC2DCE0DD625D0DCBFA42D3 /* CitllaE510App.swift in Sources */,

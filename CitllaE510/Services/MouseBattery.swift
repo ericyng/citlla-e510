@@ -5,21 +5,24 @@ import os
 /// One HID device that macOS is willing to talk about, reduced to the fields
 /// the battery resolver needs.
 ///
-/// This comes from `AppleUserHIDEventService` in the IORegistry rather than
-/// from the mouse protocol. macOS copies each HID device's power information
-/// into its event service node, and `BatteryPercent` is the key the Bluetooth
-/// stack fills in. The receiver's interfaces never carry it, which is why a
-/// dongle connection resolves to `.notReported` (see `MouseBattery.reading`).
+/// The connection facts — the name and the transport — come from the
+/// `AppleUserHIDEventService` node in the IORegistry. The level does not: for a
+/// third-party mouse the IORegistry node carries no `BatteryPercent`, and the
+/// value is filled in from the Bluetooth stack instead (see
+/// `BluetoothBattery`). The receiver's interfaces never carry a level, which is
+/// why a dongle connection resolves to `.notReported` (see
+/// `MouseBattery.reading`).
 struct HIDBatteryDevice: Identifiable, Hashable, Sendable {
     let name: String
     let vendorID: Int
     let productID: Int
-    /// The IORegistry `Transport` value: `USB` for the 2.4 GHz receiver,
+    /// The `Transport` value: `USB` for the 2.4 GHz receiver,
     /// `Bluetooth Low Energy` (or `Bluetooth`) for a paired mouse.
     let transport: String
     /// The level macOS reports, if any. Its absence is meaningful: the device
-    /// is connected but publishes no battery level.
-    let batteryPercent: Int?
+    /// is connected but publishes no battery level. The merge in
+    /// `MouseBattery.mergedDevices` fills this in from the Bluetooth stack.
+    var batteryPercent: Int?
 
     var id: String {
         String(format: "%04X:%04X:%@:%@", vendorID, productID, transport, name)
@@ -260,11 +263,47 @@ enum MouseBattery {
         min(100, max(0, percent))
     }
 
+    /// Everything the app knows about the mouse's connection right now.
+    ///
+    /// The IORegistry says what is connected and over which transport; the
+    /// Bluetooth stack is the only place a third-party mouse's level appears.
+    static func connectedDevices() -> [HIDBatteryDevice] {
+        mergedDevices(
+            registry: registryDevices(),
+            bluetooth: BluetoothBattery.connectedDevices()
+        )
+    }
+
+    /// Combines the two sources into the list the resolver sees.
+    ///
+    /// A Bluetooth device found in both is one device: the registry supplies
+    /// the transport and the stack supplies the level. A Bluetooth mouse that
+    /// the registry did not list is added as-is, and any other Bluetooth device
+    /// is dropped.
+    static func mergedDevices(
+        registry: [HIDBatteryDevice],
+        bluetooth: [HIDBatteryDevice]
+    ) -> [HIDBatteryDevice] {
+        var devices = registry
+        for device in bluetooth where isMouseDevice(device) {
+            if let index = devices.firstIndex(where: {
+                $0.isBluetooth && $0.vendorID == device.vendorID && $0.productID == device.productID
+            }) {
+                devices[index].batteryPercent = device.batteryPercent ?? devices[index].batteryPercent
+            } else {
+                devices.append(device)
+            }
+        }
+        return devices
+    }
+
     /// Reads every `AppleUserHIDEventService` node and keeps the mouse ones.
     ///
-    /// Reading the IORegistry needs no permission and no entitlement, and it
-    /// does not open the device, so it is safe to do while remapping runs.
-    static func connectedDevices() -> [HIDBatteryDevice] {
+    /// This gives the connection's transport and name but, on this hardware, no
+    /// level: the E510's node has no `BatteryPercent`. Reading the IORegistry
+    /// needs no permission and no entitlement, and it does not open the device,
+    /// so it is safe to do while remapping runs.
+    private static func registryDevices() -> [HIDBatteryDevice] {
         guard let matching = IOServiceMatching("AppleUserHIDEventService") else { return [] }
         var iterator: io_iterator_t = 0
         guard IOServiceGetMatchingServices(kIOMainPortDefault, matching, &iterator) == KERN_SUCCESS else {
@@ -327,16 +366,16 @@ enum MouseBattery {
     }
 }
 
-/// Polls the IORegistry for the mouse's battery level.
+/// Polls for the mouse's battery level.
 ///
 /// There is no notification for this, and the level changes slowly, so a
-/// minute is plenty. Reading the registry is cheap and needs no device access,
-/// so polling never disturbs the mouse or the event tap.
+/// minute is plenty. The read needs no permission and no device access, so
+/// polling never disturbs the mouse or the event tap.
 @MainActor
 final class MouseBatteryMonitor: ObservableObject {
     @Published private(set) var reading: MouseBatteryReading = .notYetRead
 
-    /// How often the registry is re-read.
+    /// How often the level is re-read.
     static let pollInterval: Duration = .seconds(60)
 
     private var pollTask: Task<Void, Never>?

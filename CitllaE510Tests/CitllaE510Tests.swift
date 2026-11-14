@@ -2059,6 +2059,143 @@ final class MouseBatteryTests: XCTestCase {
         XCTAssertFalse(reading.isConnected)
         XCTAssertEqual(reading.explanation, "The level is read from macOS when the app starts.")
     }
+
+    // MARK: Merging the registry with the Bluetooth stack
+
+    func testTheBluetoothStackFillsInTheRegistryNodesLevel() {
+        // The registry node has the transport but no level; the stack has the
+        // level but no transport. The merge is one device with both.
+        let merged = MouseBattery.mergedDevices(
+            registry: [device(percent: nil)],
+            bluetooth: [device(transport: "Bluetooth", percent: 73)]
+        )
+
+        XCTAssertEqual(merged.count, 1)
+        XCTAssertEqual(merged[0].transport, "Bluetooth Low Energy")
+        XCTAssertEqual(merged[0].batteryPercent, 73)
+        XCTAssertEqual(MouseBattery.reading(from: merged).kind, .reported(73))
+        XCTAssertEqual(MouseBattery.reading(from: merged).source, .bluetooth)
+    }
+
+    func testABluetoothMouseMissingFromTheRegistryIsStillShown() {
+        let merged = MouseBattery.mergedDevices(
+            registry: [],
+            bluetooth: [device(transport: "Bluetooth", percent: 41)]
+        )
+
+        XCTAssertEqual(merged.count, 1)
+        XCTAssertEqual(MouseBattery.reading(from: merged).kind, .reported(41))
+        XCTAssertEqual(MouseBattery.reading(from: merged).source, .bluetooth)
+    }
+
+    func testTheMergeKeepsTheReceiverAndAddsTheBluetoothLevel() {
+        let merged = MouseBattery.mergedDevices(
+            registry: [receiver()],
+            bluetooth: [device(transport: "Bluetooth", percent: 88)]
+        )
+
+        // The receiver's USB node and the Bluetooth mouse are different
+        // transports, so both survive; the reported level wins.
+        XCTAssertEqual(merged.count, 2)
+        XCTAssertEqual(MouseBattery.reading(from: merged).kind, .reported(88))
+        XCTAssertEqual(MouseBattery.reading(from: merged).source, .bluetooth)
+    }
+
+    func testTheMergeDropsUnrelatedBluetoothDevices() {
+        let logitech = device(
+            "MX MCHNCL M",
+            transport: "Bluetooth",
+            percent: 90,
+            vendorID: 0x046D,
+            productID: 0xB367
+        )
+
+        XCTAssertTrue(MouseBattery.mergedDevices(registry: [], bluetooth: [logitech]).isEmpty)
+    }
+}
+
+final class BluetoothBatteryTests: XCTestCase {
+    private let sample = Data("""
+    {
+      "SPBluetoothDataType": [
+        {
+          "controller_properties": { "controller_vendorID": "0x004C (Apple)" },
+          "device_connected": [
+            { "BT Mouse": {
+                "device_address": "FA:22:02:2A:EE:88",
+                "device_batteryLevelMain": "100%",
+                "device_vendorID": "0x32C2",
+                "device_productID": "0x0012",
+                "device_minorType": "Mouse"
+            } },
+            { "Eric’s Magic Keyboard": {
+                "device_batteryLevelMain": "76%",
+                "device_vendorID": "0x004C",
+                "device_productID": "0x029A"
+            } },
+            { "wAPM": {
+                "device_batteryLevelLeft": "81%",
+                "device_batteryLevelRight": "80%",
+                "device_vendorID": "0x004C",
+                "device_productID": "0x200A"
+            } }
+          ],
+          "device_not_connected": [
+            { "Old Mouse": {
+                "device_batteryLevelMain": "50%",
+                "device_vendorID": "0x32C2",
+                "device_productID": "0x0012"
+            } }
+          ]
+        }
+      ]
+    }
+    """.utf8)
+
+    func testParsesTheConnectedDevicesThatCarryALevel() throws {
+        let devices = BluetoothBattery.devices(fromJSON: sample)
+
+        XCTAssertEqual(devices.count, 2)
+        let mouse = try XCTUnwrap(devices.first { $0.name == "BT Mouse" })
+        XCTAssertEqual(mouse.vendorID, 0x32C2)
+        XCTAssertEqual(mouse.productID, 0x0012)
+        XCTAssertEqual(mouse.batteryPercent, 100)
+        XCTAssertEqual(mouse.transport, "Bluetooth")
+        XCTAssertEqual(mouse.source, .bluetooth)
+        XCTAssertTrue(mouse.isBluetooth)
+    }
+
+    func testADeviceWithoutAMainLevelIsSkipped() {
+        // The AirPods report only Left/Right/Case, so there is no single number
+        // the row could show.
+        let devices = BluetoothBattery.devices(fromJSON: sample)
+
+        XCTAssertFalse(devices.contains { $0.name == "wAPM" })
+    }
+
+    func testTheDisconnectedListIsIgnored() {
+        let devices = BluetoothBattery.devices(fromJSON: sample)
+
+        XCTAssertFalse(devices.contains { $0.name == "Old Mouse" })
+    }
+
+    func testHexIdentifiersAreParsed() {
+        let devices = BluetoothBattery.devices(fromJSON: sample)
+
+        XCTAssertEqual(devices.first { $0.name == "Eric’s Magic Keyboard" }?.productID, 0x029A)
+        XCTAssertEqual(devices.first { $0.name == "Eric’s Magic Keyboard" }?.vendorID, 0x004C)
+    }
+
+    func testMalformedJSONYieldsNothing() {
+        XCTAssertTrue(BluetoothBattery.devices(fromJSON: Data("not json".utf8)).isEmpty)
+        XCTAssertTrue(BluetoothBattery.devices(fromJSON: Data()).isEmpty)
+    }
+
+    func testAnEmptyConnectedListYieldsNothing() {
+        let json = Data(#"{"SPBluetoothDataType":[{"device_connected":[]}]}"#.utf8)
+
+        XCTAssertTrue(BluetoothBattery.devices(fromJSON: json).isEmpty)
+    }
 }
 
 @MainActor
