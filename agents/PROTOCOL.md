@@ -109,3 +109,31 @@ the oldest with a reason instead of adding a seventh.
 `mode: dry-run` means: read everything, report everything, write nothing and
 run nothing. `Did` becomes `Would do`, listing the exact commands you would have
 run. No commits, no journal entry, no inbox change.
+
+## 8. Project-level promotion
+
+The charter is the only definition of an agent; each harness gets a generated
+copy in the repo, so a session started there resolves the agent by name with no
+prompt pasting. `agentkit/sync.sh deploy <repo>` writes both, `check` compares
+them:
+
+| file | how it is derived |
+| --- | --- |
+| `.claude/agents/<agent>.md` | byte-for-byte copy of `agents/<agent>/charter.md` |
+| `.opencode/agents/<agent>.md` | same body; frontmatter rewritten as a read-only OpenCode subagent (`mode: subagent`, `model`, and a deny-by-default permission list) |
+
+- Edit the charter, never the promoted copies. `sync.sh check` fails on drift.
+- The OpenCode copy is the *scheduled* surface: `agentkit/sweep.sh` runs it on
+  weekdays at 07:30 through LaunchAgent `com.ericng.agent-sweep`, and its
+  permissions allow reading, `glob`, `grep` and read-only `git` only — no edit
+  tool, no other shell command. A run that cannot do something says so; it does
+  not escalate. Live runs, which may write at T2, are manual and interactive.
+- OpenCode caches an agent definition by name, so after a redeploy run
+  `opencode service restart` or a changed file is ignored.
+- Claude Code cannot complete a `-p` run under launchd on this Mac (it stalls
+  after "Loading commands and agents" in every configuration tried), which is
+  why the scheduled surface is OpenCode. `claude --agent <agent>` stays the
+  interactive path.
+- The digest replaces its own `<!-- agent-sweep:start -->` …
+  `<!-- agent-sweep:end -->` block in `<vault>/3 - Calendar/<date>.md`, so a
+  second run in a day edits rather than duplicates.
